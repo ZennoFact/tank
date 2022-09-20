@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M_Tank</title>
+  <title>M_Cube</title>
   <style>
     * {
       margin: 0;
@@ -27,6 +27,9 @@
   <script src="./js/bear.js"></script>
   <script>
     const scene = new THREE.Scene();
+    scene.background = new THREE.Color( 0x000000 );
+    const floorY = 0.5;
+    const cubes = [];
     let isEditMode = false;
     let isFPSMode = false;
 
@@ -38,68 +41,83 @@
     gridHelper.position.y = 1;
     // scene.add(gridHqelper);
 
+    // ライトを付けます
     const ambientLight = new THREE.AmbientLight( 0x242424 );
 		scene.add(ambientLight);
-
-    scene.background = new THREE.Color( 0x000000 );
+    
+    // 描画用の部品を作って
     const renderer = new THREE.WebGLRenderer({
         alpha: true
     });
     renderer.setSize( window.innerWidth, window.innerHeight );
-    document.body.appendChild( renderer.domElement );
+    document.body.appendChild( renderer.domElement ); // 画面に部品を登録します
     
+    // カメラを作って
     const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
-    camera.position.set(0, cameraBaseHeight, 0);
-    camera.lookAt(new THREE.Vector3(0,0,0));
-    scene.add(camera);
+    camera.position.set(0, cameraBaseHeight, 0); // カメラを上（y方向）に飛ばして
+    camera.lookAt(new THREE.Vector3(0,0,0)); // 下（原点）を見る
+    scene.add(camera); // シーンに登録します
 
-
+    // マップを描画するための部品を作って
     const mapRenderer = new THREE.WebGLRenderer({
         alpha: true
     });
     mapRenderer.setSize( window.innerWidth, window.innerHeight );
     mapRenderer.domElement.id = 'map';
-    mapRenderer.domElement.style.width = "250px";
-    mapRenderer.domElement.style.height = "250px";
-    document.body.appendChild( mapRenderer.domElement );
+    // Step.4 画面に部品を登録します　document.body.appendChild( mapRenderer.domElement );
+    document.body.appendChild( mapRenderer.domElement ); 
 
+    mapRenderer.domElement.style.width = "250px"; // マップを表示するパーツなのでちっさくしましょう
+    mapRenderer.domElement.style.height = "250px";
+
+    // マップを表示するためのカメラも作って
     const mapCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
     mapCamera.position.set(0, 30, 0);
     mapCamera.lookAt(new THREE.Vector3(0, 0, 0));
-    scene.add(mapCamera);
+    scene.add(mapCamera); // シーンに登録しよう
 
-    // wall
-    // const cube = new THREE.Mesh( new THREE.BoxGeometry( 1, 1, 1 ), new THREE.MeshBasicMaterial( { color: 0xcc6464 } ) );
-    // cube.position.set(1.5, 1, -1.5);
 
-    const cube = new Block({x:1.5, y: 1, z: -1.5});
-    scene.add( cube.mesh );
-    let cubes = [];
-    cubes.push(cube);
+    const cubesFlag = [];
+    for (let i = 0; i <= 100; i++) {
+      const array = [];
+      for (let j = 0; j <= 100; j++) {
+        array.push(false);
+      }
+      cubesFlag.push(array);
+    }
 
     // player
-    const geometry = new THREE.BoxGeometry( 1, 1, 2 );
-    const material = new THREE.MeshBasicMaterial( { color: 0x555749 } );
-    const player = new THREE.Mesh( geometry, material );
-    player.position.set(0, 1, 0);
-    player.castShadow = true;
-    player.receiveShadow = true;
-    scene.add( player );
+    const geometry = new THREE.BoxGeometry( 0.8, 0.8, 1.6 ); // 形状の指定
+    const material = new THREE.MeshBasicMaterial( { color: 0x555749 } ); // 表面の素材を指定（テクスチャ―もこれ
+    const player = new THREE.Mesh( geometry, material ); // ポリゴンメッシュ（略してメッシュ）。多角形の面の集合体
+    player.position.set(0, floorY, 0); // 位置を決めてー
+    player.castShadow = true; // 影を出すようにしてー
+    player.receiveShadow = true; // 影を受けるようにして―
+    // Step.1 シーンに追加する scene.add( player );
+    scene.add( player );  
 
-    let playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-    playerBB.setFromObject(player);
+    let playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
+    playerBB.setFromObject(player);  // BoundingBoxとMeshと紐づける！
 
 
-    // map
+    // wall 作ろうかと思ったけど，まあいっか
+
+    // sample cube
+    const cube = new Block({x:2, y: floorY, z: -2}); // オリジナルのCubeを作る呪文
+    cubesFlag[48][52] = true; // cubeがその位置に登録されているかどうかどうかの設定
+    cubes.push(cube);
+    // Step.2 作ったらシーンにcubeのメッシュを登録しよう
+    scene.add( cube.mesh );
+
+    // Floor　床（平面）を作ろう
     const ground = new THREE.Mesh( new THREE.PlaneGeometry(100,100), new THREE.MeshBasicMaterial({
       color: 0xdddddd
     }));
     ground.receiveShadow = true;
-    ground.rotation.x = Math.PI / -2;
-    scene.add( ground );
+    ground.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
+    scene.add( ground ); // やっぱりシーンに追加する
 
-    camera.position.z = 5;
-
+    // 今どこに進もうとしているかを記録しておく
     const state = {
       goForward: false,
       turnLeft: false,
@@ -111,16 +129,16 @@
     function animate() {
       requestAnimationFrame( animate );
       
+      // 動くようにしているところはここ
       if(state.goForward) player.translateZ(-0.1);
       if(state.turnLeft) player.rotation.y += 0.01;
       if(state.goBack) player.translateZ(0.1);
       if(state.turnRight) player.rotation.y -= 0.01;
 
-      // cube.collision(player);
-
-      playerBB.copy(player.geometry.boundingBox).applyMatrix4(player.matrixWorld);
-      cubes.forEach(cube => {
-        checkCollisions(cube);
+      playerBB.copy(player.geometry.boundingBox).applyMatrix4(player.matrixWorld); // 動くたびにバウンディングボックスをコピー
+      cubes.forEach(cube => { // 一つ一つのキューブを取り出して，
+        // Step.5 衝突の検知 cube.collision(playerBB);
+        cube.collision(playerBB);
       })
 
       camera.position.x = player.position.x;
@@ -128,8 +146,10 @@
       mapCamera.position.x = player.position.x;
       mapCamera.position.z = player.position.z;
       if (isFPSMode) {
+        // TODO:　　この辺ちょっと挙動が怪しい
         camera.rotation.y = player.rotation.y;
       } else {
+        camera.rotation.y = 0;
         camera.lookAt(player.position);
       }
 
@@ -137,79 +157,73 @@
       mapRenderer.render( scene, mapCamera);
     }
     
-
+    // 一瞬一瞬，再描画し続ける
     animate();
-
-    function checkCollisions(cube) {
-      cube.boundingBox.copy(cube.mesh.geometry.boundingBox).applyMatrix4(cube.mesh.matrixWorld);    
-      if (cube.boundingBox.intersectsBox(playerBB)) {
-        cube.mesh.material.color.setHex(cube.collisionColor);
-      } else {
-        cube.mesh.material.color.setHex(cube.color);
-      }
-
-      // TODO: 完全に重なったら？いる？今のところ要らない
-
-      if (cube.boundingBox.containsBox(playerBB)) {
-        cube.mesh.position.y = 3;
-      } else {
-        cube.mesh.position.y = 1;
-      }
-    }
-
 
 
     window.addEventListener('keydown', (event) => {
       if (isEditMode) return; // Editモードでは動かさない。
-
+      // Step.3 event.key 押されたキーに応じて分岐する，と動くようになる
       switch(event.key) {
         case 'w' :
+        case 'ArrowUp':
           state.goForward = true;
           break;
         case 'a' :
+        case 'ArrowLeft':
           state.turnLeft = true;
           break;
         case 's' :
+        case 'ArrowDown':
           state.goBack = true;
           break;
-        case 'd' :
-        case 'e' : // TODO: debug
+          case 'd' :
+          case 'ArrowRight':
           state.turnRight = true;
           break;
       }
     }, false);
+
+    function notMove() {
+      if(state.goForward || state.turnLeft || state.turnRight || state.goBack) return false;
+      return true;
+    }
+    
     window.addEventListener('keyup', (event) => {
       switch(event.key) {
         case 'w' :
+        case 'ArrowUp':
           state.goForward = false;
           break;
         case 'a' :
+        case 'ArrowLeft':
           state.turnLeft = false;
           break;
         case 's' :
+        case 'ArrowDown':
           state.goBack = false;
           break;
         case 'd' :
-        case 'e' : // TODO: debug
+        case 'ArrowRight':
           state.turnRight = false;
           break;
-        case 'q':
+        case 'e': // Step.6 エディットモード解禁 case 'e':
           if(isEditMode) {
             isEditMode = false;
             camera.position.y = cameraBaseHeight;
-          } else if(!isFPSMode && !isFPSMode) { 
+          } else if(!isFPSMode && !isEditMode && notMove()) { 
             isEditMode = true
             camera.position.y = cameraEditHeight;
-          }
+          } 
           break;
-        case ' ': // TODO: 本来はe（Edit）を使いたい
-        if(isFPSMode) {
+        case ' ': // 視点変更，F（FPS）でもいいかも？
+          if(isFPSMode) {
             isFPSMode = false;
             camera.position.y = cameraBaseHeight;
-          } else { 
+          } else if(!isEditMode) { 
             isFPSMode = true;
             camera.position.y = player.position.y;
-            camera.lookAt(0, 1, -3);
+            camera.lookAt(0, floorY, -3);
             camera.rotation.y = player.rotation.y;
           }
           break;
@@ -221,10 +235,16 @@
 
     const raycaster = new THREE.Raycaster();
     window.addEventListener('click', (event) => {
-      clickHandler();
+      clickHandler((mesh, x, z) => {
+        scene.remove(mesh);
+        mesh.material.dispose();
+        mesh.geometry.dispose();
+
+        cubesFlag[z][x] = false;
+      });
     }, false);
 
-    function clickHandler() {
+    function clickHandler(meshClear) {
       if(!isEditMode) return;
       // レイキャスト = マウス位置からまっすぐに伸びる光線ベクトルを生成
       raycaster.setFromCamera(mouse, camera);
@@ -238,8 +258,18 @@
         // Grid上に置くため，四捨五入しておく
         const x = Math.round(point.x);
         const z = Math.round(point.z);
+
+        // TODO: x + 50とか避けて変数に。
+        if(cubesFlag[z + 50][x + 50]) {
+          // meshがあったら削除
+          meshClear(intersects[0].object, x + 50, z + 50);
+          return;
+        }
+
+        cubesFlag[z + 50][x + 50] = true;
+
         // console.log(`${x}, ${z}`);
-        const cube = new Block({x: x, y: 1, z: z});
+        const cube = new Block({x: x, y: floorY, z: z});
         scene.add( cube.mesh );
         cubes.push(cube);
       }
@@ -273,7 +303,7 @@
       mouse.y = -( y / h ) * 2 + 1;
 
       if (isDrag) {
-        clickHandler();
+        clickHandler(() => {});
       }
     }, false);
 

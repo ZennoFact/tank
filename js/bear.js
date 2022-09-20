@@ -52,29 +52,22 @@ class Block {
     this.boundingBox.setFromObject(this.mesh);
   }
 
-  collision(player) {
-    console.log();
-    let array = player.geometry.vertices;
-    // let array = player.geometry.attributes.position.array;
-
-    for (var vertexIndex = 0; vertexIndex < array.length; vertexIndex++) {
-      var localVertex = array[vertexIndex].clone();
-      var globalVertex = player.matrix.multiplyVector3(localVertex);
-      var directionVector = globalVertex.subSelf(player.position);
-
-      var ray = new THREE.Ray(
-        player.position,
-        directionVector.clone().normalize()
-      );
-      var collisionResults = ray.intersectObjects([this.mesh]);
-      if (
-        collisionResults.length > 0 &&
-        collisionResults[0].distance < directionVector.length()
-      ) {
-        this.mesh.material.color.setHex(this.collisionColor);
-      } else {
-        this.mesh.material.color.setHex(this.color);
-      }
+  collision(playerBB) {
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+    if (this.boundingBox.intersectsBox(playerBB)) {
+      this.mesh.material.color.setHex(this.collisionColor);
+    } else {
+      // 色を戻したいときはここのコメントを解除
+      // this.mesh.material.color.setHex(this.color);
     }
+
+    // TODO: 完全に重なったら？は今のところ考えない
+    // if (this.boundingBox.containsBox(playerBB)) {
+    //   this.mesh.position.y = 1.5;
+    // } else {
+    //   this.mesh.position.y = 1;
+    // }
   }
 }
