@@ -30,6 +30,7 @@ class Bear {
     const material = new THREE.MeshBasicMaterial({ color: 0x555749 });
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(0, 1, 0);
+    return mesh;
   }
 }
 
@@ -69,5 +70,52 @@ class Block {
     // } else {
     //   this.mesh.position.y = 1;
     // }
+  }
+}
+
+class Ball {
+  color = 0x6464ff;
+  constructor(player) {
+    const position = player.position;
+    this.isNotHit = true;
+    this.life = 100;
+
+    this.mesh = new THREE.Mesh(
+      new THREE.SphereGeometry(0.3, 32, 16),
+      new THREE.MeshBasicMaterial({ color: this.color })
+    );
+    this.mesh.position.set(position.x, position.y, position.z);
+    this.mesh.rotation.set(
+      player.rotation.x,
+      player.rotation.y,
+      player.rotation.z
+    );
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
+    // this.mesh.matrixAutoUpdate = false;
+
+    // 接触判定用BoundingBox
+    this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    this.boundingBox.setFromObject(this.mesh);
+  }
+
+  move() {
+    this.mesh.translateZ(-0.3);
+    this.life--;
+    if (this.life < 0) this.isNotHit = false;
+  }
+
+  collision(cube) {
+    const cubeBB = cube.boundingBox;
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+    if (this.boundingBox.intersectsBox(cubeBB)) {
+      cube.mesh.material.color.setHex(this.color);
+      this.isNotHit = false;
+      return true;
+    } else {
+      return false;
+    }
   }
 }

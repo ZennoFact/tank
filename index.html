@@ -29,6 +29,25 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x000000 );
     const floorY = 0.5;
+
+    const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
+    let balls = [];
+    const points = [];
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+    scene.add(line);
+
+    // どのキーで何の操作をするかを決定 キーコンフィグができるようにしておくよ！
+    const action = {
+      foward: 'w',
+      left: 'a',
+      right: 'd',
+      back: 's',
+      shoot: ' ',
+      edit: 'e', // Step.4 エディットモード解禁 case 'e':
+      fps: 'q', // TODO: 本来はfが望ましい？
+      none: ''
+    };
     const cubes = [];
     let isEditMode = false;
     let isFPSMode = false;
@@ -64,7 +83,7 @@
     });
     mapRenderer.setSize( window.innerWidth, window.innerHeight );
     mapRenderer.domElement.id = 'map';
-    // Step.4 画面に部品を登録します　document.body.appendChild( mapRenderer.domElement );
+    // Step.5 画面に部品を登録します　document.body.appendChild( mapRenderer.domElement );
     document.body.appendChild( mapRenderer.domElement ); 
 
     mapRenderer.domElement.style.width = "250px"; // マップを表示するパーツなのでちっさくしましょう
@@ -111,7 +130,8 @@
 
     // Floor　床（平面）を作ろう
     const ground = new THREE.Mesh( new THREE.PlaneGeometry(100,100), new THREE.MeshBasicMaterial({
-      color: 0xdddddd
+      color: 0xdddddd,
+      side: THREE.DoubleSide
     }));
     ground.receiveShadow = true;
     ground.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
@@ -125,19 +145,40 @@
       goBack: false
     };
 
+    // 動いた時に線を描きたい場合は呼び出す関数
+    function drawLine() {
+      points.push(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
+      line.geometry = new THREE.BufferGeometry().setFromPoints(points)
+    }
+
 
     function animate() {
       requestAnimationFrame( animate );
       
       // 動くようにしているところはここ
-      if(state.goForward) player.translateZ(-0.1);
+      if(state.goForward) {
+        player.translateZ(-0.1);
+
+        // Step.8-1 移動して線を描きたい
+        drawLine();
+      }
       if(state.turnLeft) player.rotation.y += 0.01;
-      if(state.goBack) player.translateZ(0.1);
+      if(state.goBack) {
+        player.translateZ(0.1);
+        
+        // Step.8-2 バックしても線を描きたい
+        drawLine();
+      }
       if(state.turnRight) player.rotation.y -= 0.01;
+
+      // 床の範囲を越えたら重力の影響を受けます。
+      if(player.position.x < -50 || 50 < player.position.x || player.position.z < -50 || 50 < player.position.z) {
+        player.position.y -= 0.98;
+      }
 
       playerBB.copy(player.geometry.boundingBox).applyMatrix4(player.matrixWorld); // 動くたびにバウンディングボックスをコピー
       cubes.forEach(cube => { // 一つ一つのキューブを取り出して，
-        // Step.5 衝突の検知 cube.collision(playerBB);
+        // Step.6 衝突の検知 cube.collision(playerBB);
         cube.collision(playerBB);
       })
 
@@ -146,12 +187,26 @@
       mapCamera.position.x = player.position.x;
       mapCamera.position.z = player.position.z;
       if (isFPSMode) {
-        // TODO:　　この辺ちょっと挙動が怪しい
+        // TODO: この辺ちょっと挙動が怪しい
         camera.rotation.y = player.rotation.y;
+        camera.position.y = player.position.y;
       } else {
         camera.rotation.y = 0;
         camera.lookAt(player.position);
       }
+
+      balls.forEach((ball, i) =>{
+        ball.move();
+        cubes.forEach(cube => { ball.collision(cube) });
+        
+        if(!ball.isNotHit) {
+          balls.splice(i, 1);
+          scene.remove(ball.mesh);
+          ball.mesh.material.dispose();
+          ball.mesh.geometry.dispose();
+        }
+      });
+      balls = balls.filter(b => b.isNotHit);
 
       renderer.render( scene, camera );
       mapRenderer.render( scene, mapCamera);
@@ -162,24 +217,28 @@
 
 
     window.addEventListener('keydown', (event) => {
+      // console.log(event.key)
       if (isEditMode) return; // Editモードでは動かさない。
       // Step.3 event.key 押されたキーに応じて分岐する，と動くようになる
       switch(event.key) {
-        case 'w' :
+        case action.foward:
         case 'ArrowUp':
           state.goForward = true;
           break;
-        case 'a' :
+        case action.left:
         case 'ArrowLeft':
           state.turnLeft = true;
           break;
-        case 's' :
+        case action.back:
         case 'ArrowDown':
           state.goBack = true;
           break;
-          case 'd' :
+          case action.right:
           case 'ArrowRight':
           state.turnRight = true;
+          break;
+        case action.shoot: // 弾丸の発射
+          
           break;
       }
     }, false);
@@ -191,23 +250,23 @@
     
     window.addEventListener('keyup', (event) => {
       switch(event.key) {
-        case 'w' :
+        case action.foward:
         case 'ArrowUp':
           state.goForward = false;
           break;
-        case 'a' :
+        case action.left:
         case 'ArrowLeft':
           state.turnLeft = false;
           break;
-        case 's' :
+        case action.back:
         case 'ArrowDown':
           state.goBack = false;
           break;
-        case 'd' :
+        case action.right:
         case 'ArrowRight':
           state.turnRight = false;
           break;
-        case 'e': // Step.6 エディットモード解禁 case 'e':
+        case action.edit:
           if(isEditMode) {
             isEditMode = false;
             camera.position.y = cameraBaseHeight;
@@ -216,7 +275,7 @@
             camera.position.y = cameraEditHeight;
           } 
           break;
-        case ' ': // 視点変更，F（FPS）でもいいかも？
+        case action.fps: // 視点変更
           if(isFPSMode) {
             isFPSMode = false;
             camera.position.y = cameraBaseHeight;
@@ -227,11 +286,18 @@
             camera.rotation.y = player.rotation.y;
           }
           break;
+        case action.shoot: // 弾丸の発射
+          // Step.7 ボールを投げる！ throwing();
+          throwing(); 
+          break;
       }
     }, false);
 
-
-
+    function throwing() {
+      const ball = new Ball(player); // オリジナルのCubeを作る呪文
+      scene.add( ball.mesh );
+      balls.push(ball);
+    }
 
     const raycaster = new THREE.Raycaster();
     window.addEventListener('click', (event) => {
