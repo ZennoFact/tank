@@ -238,7 +238,9 @@
           state.turnRight = true;
           break;
         case action.shoot: // 弾丸の発射
-          
+          if(!isEditMode) {
+
+          }
           break;
       }
     }, false);
@@ -287,8 +289,10 @@
           }
           break;
         case action.shoot: // 弾丸の発射
-          // Step.7 ボールを投げる！ throwing();
-          throwing(); 
+          if(!isEditMode) {
+            // Step.7 ボールを投げる！ throwing();
+            throwing(); 
+          }
           break;
       }
     }, false);
