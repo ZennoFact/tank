@@ -61,9 +61,11 @@ class Block {
       .applyMatrix4(this.mesh.matrixWorld);
     if (this.boundingBox.intersectsBox(playerBB)) {
       this.mesh.material.color.setHex(this.collisionColor);
+      return true;
     } else {
       // 色を戻したいときはここのコメントを解除
       // this.mesh.material.color.setHex(this.color);
+      return false;
     }
 
     // TODO: 完全に重なったら？は今のところ考えない

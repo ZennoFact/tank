@@ -18,9 +18,11 @@
 
     const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
     let balls = [];
+    let padList = [];
     const points = [];
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
     const line = new THREE.Line(lineGeometry, lineMaterial);
+  
     scene.add(line);
 
     // どのキーで何の操作をするかを決定 キーコンフィグができるようにしておくよ！
@@ -34,7 +36,24 @@
       fps: 'q', // TODO: 本来はfが望ましい？
       none: ''
     };
-    const cubes = [];
+    let cubes = [];
+    const cubesFlag = [];
+    for (let i = 0; i <= 100; i++) {
+      const array = [];
+      for (let j = 0; j <= 100; j++) {
+        array.push(false);
+      }
+      cubesFlag.push(array);
+    }
+    if (localStorage.getItem('map')) {
+      const coordinates = JSON.parse(localStorage.getItem('map'));
+      coordinates.forEach(position => {
+        const cube = new Block(position);
+        cubes.push(cube);
+        scene.add(cube.mesh);
+        cubesFlag[position.z + 50][position.x + 50] = true;
+      });
+    }
     let isEditMode = false;
     let isFPSMode = false;
 
@@ -81,16 +100,6 @@
     mapCamera.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(mapCamera); // シーンに登録しよう
 
-
-    const cubesFlag = [];
-    for (let i = 0; i <= 100; i++) {
-      const array = [];
-      for (let j = 0; j <= 100; j++) {
-        array.push(false);
-      }
-      cubesFlag.push(array);
-    }
-
     // player
     const geometry = new THREE.BoxGeometry( 0.8, 0.8, 1.6 ); // 形状の指定
     const material = new THREE.MeshBasicMaterial( { color: 0x555749 } ); // 表面の素材を指定（テクスチャ―もこれ
@@ -108,11 +117,13 @@
     // wall 作ろうかと思ったけど，まあいっか
 
     // sample cube
-    const cube = new Block({x:2, y: floorY, z: -2}); // オリジナルのCubeを作る呪文
-    cubesFlag[48][52] = true; // cubeがその位置に登録されているかどうかどうかの設定
-    cubes.push(cube);
-    // Step.2 作ったらシーンにcubeのメッシュを登録しよう
-    scene.add( cube.mesh );
+    if(cubes.length === 0) {
+      const cube = new Block({x:2, y: floorY, z: -2}); // オリジナルのCubeを作る呪文
+      cubesFlag[48][52] = true; // cubeがその位置に登録されているかどうかどうかの設定
+      cubes.push(cube);
+      // Step.2 作ったらシーンにcubeのメッシュを登録しよう
+      scene.add( cube.mesh );
+    }
 
     // Floor　床（平面）を作ろう
     const ground = new THREE.Mesh( new THREE.PlaneGeometry(100,100), new THREE.MeshBasicMaterial({
@@ -138,22 +149,117 @@
     }
 
 
+    // TODO: 暫定で設置した玉の発射間隔
+    let interval = 0;
+    let intervalX = 0;
+    let intervalY = 0;
     function animate() {
       requestAnimationFrame( animate );
+
+      const padList = navigator.getGamepads();
+      if(padList[0]) {
+        const pad = padList[0];
+        // console.log(pad.buttons[9])
+
+        // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
+        // 移動
+        if(!isEditMode) {
+          // ボールを投げる
+          interval--;
+          if(pad.buttons[7].pressed) {
+            // pad.vibrationActuator.playEffect();
+            if(interval < 0) {
+              throwing();
+              player.translateZ(0.3);
+              interval = 30;
+              pad.vibrationActuator.playEffect('dual-rumble', {
+                startDelay: 0,
+                duration: 50,
+                weakMagnitude: 0.7,
+                strongMagnitude: 0.7,
+              });
+            }
+          }
+
+          // TODO: 撃っている間は動きを鈍らせてもいいかもね
+
+          if(pad.axes[1] < -0.3 ) {
+            // state.goForward = true;
+            const speed = 0.1 * pad.axes[1];
+            player.translateZ(speed);
+          } else if(pad.axes[1] > 0.3) {
+            // state.goBack = true;
+            const speed = 0.1 * pad.axes[1];
+            player.translateZ(speed);
+          }
+          
+          if(pad.axes[2] < -0.3 || 0.3 < pad.axes[2]) {
+            // state.turnLeft = true;
+            const deg = 0.02 * pad.axes[2];
+            player.rotation.y -= deg;
+          }
+
+          if(isFPSMode) {
+            camera.rotation.y = player.rotation.y;
+          }
+        }
+
+        // モード変更　FPS
+        intervalY--;
+        if(pad.buttons[3].pressed) {
+          if (intervalY < 0) {
+            intervalY = 20;
+
+            if(isFPSMode) {
+              isFPSMode = false;
+              camera.position.y = cameraBaseHeight;
+              camera.rotation.y = 0;
+            } else { 
+              isFPSMode = true;
+              isEditMode = false;
+              camera.position.y = player.position.y;
+              camera.lookAt(0, floorY, -3);
+              camera.rotation.y = player.rotation.y;
+            }
+          }
+        }
+
+        // モード変更 EDIT
+        intervalX--;
+        if(pad.buttons[2].pressed) {
+          if (intervalX < 0) {
+            intervalX = 20;
+
+            if(isEditMode) {
+              isEditMode = false;
+              camera.position.y = cameraBaseHeight;
+              camera.position.x = player.position.x;
+              camera.position.z = player.position.z;
+            } else { 
+              isEditMode = true;
+              isFPSMode = false;
+              camera.position.y = cameraEditHeight;
+              camera.position.x = 0;
+              camera.position.z = 0;
+            } 
+          }
+        }
+
+        if(pad.buttons[9].pressed) {
+          alert('マップを保存しました！');
+          const coordinates = cubes.map(cube => cube.position);
+          localStorage.setItem('map', JSON.stringify(coordinates));
+        } 
+        if(pad.buttons[8].pressed) {
+          const result = window.confirm('保存されたマップデータを削除しますか？');
+          if(result) {
+            localStorage.removeItem('map');
+            alert('保存されたマップデータを消去しました')
+            location.reload();
+          }
+        }
+      }
       
-      // 動くようにしているところはここ
-      if(state.goForward) {
-        player.translateZ(-0.1);
-        // Step.8-1 移動して線を描きたい
-        drawLine();
-      }
-      if(state.goBack) {
-        player.translateZ(0.1);
-        // Step.8-2 バックしても線を描きたい
-        drawLine();
-      }
-      if(state.turnLeft) player.rotation.y += 0.01;
-      if(state.turnRight) player.rotation.y -= 0.01;
       // 床の範囲を越えたら重力の影響を受けます。
       if(player.position.x < -50 || 50 < player.position.x || player.position.z < -50 || 50 < player.position.z) {
         player.position.y -= 0.98;
@@ -162,7 +268,20 @@
       playerBB.copy(player.geometry.boundingBox).applyMatrix4(player.matrixWorld); // 動くたびにバウンディングボックスをコピー
       cubes.forEach(cube => { // 一つ一つのキューブを取り出して，
         // Step.6 衝突の検知 cube.collision(playerBB);
-        cube.collision(playerBB);
+        const result = cube.collision(playerBB);
+
+        if (result) {
+          const padList = navigator.getGamepads();
+          if (padList[0]) {
+            // padList[0].GamepadHapticActuator[0].pulse(1.0, 30);
+            padList[0].vibrationActuator.playEffect('dual-rumble', {
+              startDelay: 0,
+              duration: 100,
+              weakMagnitude: 1.0,
+              strongMagnitude: 1.0,
+            });
+          }
+        }
       })
 
       camera.position.x = player.position.x;
@@ -363,8 +482,19 @@
     }, false);
 
 
-    // TODO:camera切り替え後のFPSモード進行方向変更のずれを直す
+    /* ゲームパッド関連 */
+    // 接続処理
+    window.addEventListener("gamepadconnected", function(e) {
+      console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
+        e.gamepad.index, e.gamepad.id,
+        e.gamepad.buttons.length, e.gamepad.axes.length);
+    });
 
+    // 切断処理
+    window.addEventListener("gamepaddisconnected", function(e) {
+      console.log("Gamepad disconnected from index %d: %s",
+        e.gamepad.index, e.gamepad.id);
+    });
   </script>
 </body>
 </html>
