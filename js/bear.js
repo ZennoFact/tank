@@ -34,6 +34,8 @@ class Bear {
   }
 }
 
+// Meshはcloneして使いまわせないか。→色の変化が一気に出たので一旦却下
+
 class Block {
   color = 0xff6464;
   collisionColor = 0xff2424;

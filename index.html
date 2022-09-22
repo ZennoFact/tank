@@ -144,19 +144,16 @@
       // 動くようにしているところはここ
       if(state.goForward) {
         player.translateZ(-0.1);
-
         // Step.8-1 移動して線を描きたい
         drawLine();
       }
-      if(state.turnLeft) player.rotation.y += 0.01;
       if(state.goBack) {
         player.translateZ(0.1);
-        
         // Step.8-2 バックしても線を描きたい
         drawLine();
       }
+      if(state.turnLeft) player.rotation.y += 0.01;
       if(state.turnRight) player.rotation.y -= 0.01;
-
       // 床の範囲を越えたら重力の影響を受けます。
       if(player.position.x < -50 || 50 < player.position.x || player.position.z < -50 || 50 < player.position.z) {
         player.position.y -= 0.98;
@@ -173,9 +170,10 @@
       mapCamera.position.x = player.position.x;
       mapCamera.position.z = player.position.z;
       if (isFPSMode) {
-        // TODO: この辺ちょっと挙動が怪しい
-        camera.rotation.y = player.rotation.y;
         camera.position.y = player.position.y;
+
+        if(state.turnLeft) camera.rotation.y += 0.01;
+        if(state.turnRight) camera.rotation.y -= 0.01;
       } else {
         camera.rotation.y = 0;
         camera.lookAt(player.position);
@@ -267,6 +265,7 @@
           if(isFPSMode) {
             isFPSMode = false;
             camera.position.y = cameraBaseHeight;
+            camera.rotation.y = 0;
           } else if(!isEditMode) { 
             isFPSMode = true;
             camera.position.y = player.position.y;
