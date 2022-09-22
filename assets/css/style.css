@@ -1,0 +1,13 @@
+* {
+  margin: 0;
+}
+
+#map {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  top: 20px;
+  right: 20px;
+  background-color: #646464;
+  border: solid 2px #000000;
+}
