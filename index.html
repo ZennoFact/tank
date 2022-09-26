@@ -124,14 +124,6 @@
     ground.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
     scene.add( ground ); // やっぱりシーンに追加する
 
-    // 今どこに進もうとしているかを記録しておく
-    const state = {
-      goForward: false,
-      turnLeft: false,
-      turnRight: false,
-      goBack: false
-    };
-
     // 動いた時に線を描きたい場合は呼び出す関数
     function drawLine() {
       points.push(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
@@ -179,17 +171,14 @@
 
           // TODO: 撃っている間は動きを鈍らせてもいいかもね
           if(upDown < -0.3 ) {
-            // state.goForward = true;
             const speed = 0.1 * upDown;
             player.translateZ(speed);
           } else if(upDown > 0.3) {
-            // state.goBack = true;
             const speed = 0.1 * upDown;
             player.translateZ(speed);
           }
           
           if(LR < -0.3 || 0.3 < LR) {
-            // state.turnLeft = true;
             const deg = 0.02 * LR;
             player.rotation.y -= deg;
           }
@@ -284,15 +273,7 @@
       camera.position.z = player.position.z;
       mapCamera.position.x = player.position.x;
       mapCamera.position.z = player.position.z;
-      if (isFPSMode) {
-        camera.position.y = player.position.y;
 
-        if(state.turnLeft) camera.rotation.y += 0.01;
-        if(state.turnRight) camera.rotation.y -= 0.01;
-      } else {
-        camera.rotation.y = 0;
-        camera.lookAt(player.position);
-      }
 
       balls.forEach((ball, i) =>{
         ball.move();
@@ -313,11 +294,6 @@
     
     // 一瞬一瞬，再描画し続ける
     animate();
-
-    function notMove() {
-      if(state.goForward || state.turnLeft || state.turnRight || state.goBack) return false;
-      return true;
-    }
   
     function shoot() {
       const ball = new Ball(player); // オリジナルのCubeを作る呪文
