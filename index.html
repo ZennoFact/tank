@@ -102,7 +102,8 @@
 
     player.bb = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
     player.bb.setFromObject(player);  // BoundingBoxとMeshと紐づける！
-
+    // 基本はショットから
+    player.isShooter = true;
 
     // wall 作ろうかと思ったけど，まあいっか
 
@@ -157,7 +158,6 @@
 
 
     function updateFloor(position, color = 0x9696ff) {
-      console.log(position) // ex_2, -2 -> 52, 48 => 2496
       const c = new THREE.Color();
       c.setHex(color);
       const a = 1;
@@ -208,9 +208,13 @@
 
 
     // 各種ボタン連打・弾丸発射間隔の計測用変数
-    let interval = 0;
-    let intervalX = 0;
-    let intervalY = 0;
+    const interval = {
+      triger: 0,
+      x: 0,
+      y: 0,
+      rb: 0
+    }
+
     function animate() {
       requestAnimationFrame( animate );
 
@@ -219,6 +223,7 @@
         const pad = padList[0];
         const xBtn = pad.buttons[config.button.x].pressed;
         const yBtn = pad.buttons[config.button.y].pressed;
+        const rbBtn = pad.buttons[config.button.rb].pressed;
         const backBtn = pad.buttons[config.button.back].pressed;
         const startBtn = pad.buttons[config.button.start].pressed;
         const rTriger = pad.buttons[config.button.rt].pressed; 
@@ -229,12 +234,11 @@
         // 移動
         if(!isEditMode) {
           // ボールを投げる
-          interval--;
+          interval.triger--;
           if(rTriger) {
-            if(interval < 0) {
+            if(interval.triger < 0) {
               shoot();
-              player.translateZ(0.3);
-              interval = 30; // 連射速度を制御
+              interval.triger = 30; // 連射速度を制御
             }
           }
 
@@ -258,10 +262,10 @@
         }
 
         // モード変更　FPS
-        intervalY--;
+        interval.y--;
         if(yBtn) {
-          if (intervalY < 0) {
-            intervalY = 20;
+          if (interval.y < 0) {
+            interval.y = 20;
 
             if(isFPSMode) {
               isFPSMode = false;
@@ -279,10 +283,10 @@
         }
 
         // モード変更 EDIT
-        intervalX--;
+        interval.x--;
         if(xBtn) {
-          if (intervalX < 0) {
-            intervalX = 20;
+          if (interval.x < 0) {
+            interval.x = 20;
 
             if(isEditMode) {
               isEditMode = false;
@@ -295,7 +299,18 @@
               camera.position.y = cameraEditHeight;
               camera.position.x = 0;
               camera.position.z = 0;
+              camera.lookAt(0, 0, 0);
             } 
+          }
+        }
+
+        // 武器変更
+        interval.rb--;
+        if(rbBtn) {
+          if (interval.rb < 0) {
+            interval.rb = 20;
+
+            player.isShooter = !player.isShooter;
           }
         }
 
@@ -347,7 +362,6 @@
 
 
       balls.forEach((ball, i) =>{
-        console.log(ball)
         if(isFPSMode) {
           ball.mesh.material.transparent = true;
           ball.mesh.material.opacity = 0.5;
@@ -386,9 +400,14 @@
     animate();
   
     function shoot() {
-      const ball = new Ball(player); // オリジナルのCubeを作る呪文
-      scene.add( ball.mesh );
-      balls.push(ball);
+      if(player.isShooter) {
+        const ball = new Ball(player); // オリジナルのCubeを作る呪文
+        scene.add( ball.mesh );
+        balls.push(ball);
+        player.translateZ(0.3); // 反動で後退
+      } else {
+        updateFloor(player.position);
+      }
     }
 
     const raycaster = new THREE.Raycaster();
