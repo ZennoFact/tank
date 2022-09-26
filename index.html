@@ -10,6 +10,7 @@
 <body>
   <script src="./js/vendor/three.js"></script>
   <script src="./js/vendor/OBJLoader.js"></script>
+  <script src="./js/config.js"></script>
   <script src="./js/bear.js"></script>
   <script>
     const scene = new THREE.Scene();
@@ -25,17 +26,6 @@
   
     scene.add(line);
 
-    // どのキーで何の操作をするかを決定 キーコンフィグができるようにしておくよ！
-    const action = {
-      foward: 'w',
-      left: 'a',
-      right: 'd',
-      back: 's',
-      shoot: ' ',
-      edit: 'e', // Step.4 エディットモード解禁 case 'e':
-      fps: 'q', // TODO: 本来はfが望ましい？
-      none: ''
-    };
     let cubes = [];
     const cubesFlag = [];
     for (let i = 0; i <= 100; i++) {
@@ -159,43 +149,48 @@
       const padList = navigator.getGamepads();
       if(padList[0]) {
         const pad = padList[0];
-        // console.log(pad.buttons[9])
+        const xBtn = pad.buttons[config.button.x].pressed;
+        const yBtn = pad.buttons[config.button.y].pressed;
+        const backBtn = pad.buttons[config.button.back].pressed;
+        const startBtn = pad.buttons[config.button.start].pressed;
+        const rTriger = pad.buttons[config.button.rt].pressed; 
+        const upDown = pad.axes[config.stick.leftY];
+        const LR = pad.axes[config.stick.rightX];
 
         // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
         // 移動
         if(!isEditMode) {
           // ボールを投げる
           interval--;
-          if(pad.buttons[7].pressed) {
-            // pad.vibrationActuator.playEffect();
+          if(rTriger) {
             if(interval < 0) {
-              throwing();
+              shoot();
               player.translateZ(0.3);
               interval = 30;
-              pad.vibrationActuator.playEffect('dual-rumble', {
-                startDelay: 0,
-                duration: 50,
-                weakMagnitude: 0.7,
-                strongMagnitude: 0.7,
-              });
+              // 反動を震えさせたいなら
+              // pad.vibrationActuator.playEffect('dual-rumble', {
+              //   startDelay: 0,
+              //   duration: 50,
+              //   weakMagnitude: 0.7,
+              //   strongMagnitude: 0.7,
+              // });
             }
           }
 
           // TODO: 撃っている間は動きを鈍らせてもいいかもね
-
-          if(pad.axes[1] < -0.3 ) {
+          if(upDown < -0.3 ) {
             // state.goForward = true;
-            const speed = 0.1 * pad.axes[1];
+            const speed = 0.1 * upDown;
             player.translateZ(speed);
-          } else if(pad.axes[1] > 0.3) {
+          } else if(upDown > 0.3) {
             // state.goBack = true;
-            const speed = 0.1 * pad.axes[1];
+            const speed = 0.1 * upDown;
             player.translateZ(speed);
           }
           
-          if(pad.axes[2] < -0.3 || 0.3 < pad.axes[2]) {
+          if(LR < -0.3 || 0.3 < LR) {
             // state.turnLeft = true;
-            const deg = 0.02 * pad.axes[2];
+            const deg = 0.02 * LR;
             player.rotation.y -= deg;
           }
 
@@ -206,7 +201,7 @@
 
         // モード変更　FPS
         intervalY--;
-        if(pad.buttons[3].pressed) {
+        if(yBtn) {
           if (intervalY < 0) {
             intervalY = 20;
 
@@ -214,11 +209,12 @@
               isFPSMode = false;
               camera.position.y = cameraBaseHeight;
               camera.rotation.y = 0;
+              camera.lookAt(player.position.x, player.position.y, player.position.z);
             } else { 
               isFPSMode = true;
               isEditMode = false;
               camera.position.y = player.position.y;
-              camera.lookAt(0, floorY, -3);
+              camera.lookAt(player.position.x, floorY, player.position.z - 1);
               camera.rotation.y = player.rotation.y;
             }
           }
@@ -226,7 +222,7 @@
 
         // モード変更 EDIT
         intervalX--;
-        if(pad.buttons[2].pressed) {
+        if(xBtn) {
           if (intervalX < 0) {
             intervalX = 20;
 
@@ -245,12 +241,12 @@
           }
         }
 
-        if(pad.buttons[9].pressed) {
+        if(startBtn) {
           alert('マップを保存しました！');
           const coordinates = cubes.map(cube => cube.position);
           localStorage.setItem('map', JSON.stringify(coordinates));
         } 
-        if(pad.buttons[8].pressed) {
+        if(backBtn) {
           const result = window.confirm('保存されたマップデータを削除しますか？');
           if(result) {
             localStorage.removeItem('map');
@@ -318,90 +314,12 @@
     // 一瞬一瞬，再描画し続ける
     animate();
 
-
-    window.addEventListener('keydown', (event) => {
-      // console.log(event.key)
-      if (isEditMode) return; // Editモードでは動かさない。
-      // Step.3 event.key 押されたキーに応じて分岐する，と動くようになる
-      switch(event.key) {
-        case action.foward:
-        case 'ArrowUp':
-          state.goForward = true;
-          break;
-        case action.left:
-        case 'ArrowLeft':
-          state.turnLeft = true;
-          break;
-        case action.back:
-        case 'ArrowDown':
-          state.goBack = true;
-          break;
-          case action.right:
-          case 'ArrowRight':
-          state.turnRight = true;
-          break;
-        case action.shoot: // 弾丸の発射
-          if(!isEditMode) {
-
-          }
-          break;
-      }
-    }, false);
-
     function notMove() {
       if(state.goForward || state.turnLeft || state.turnRight || state.goBack) return false;
       return true;
     }
-    
-    window.addEventListener('keyup', (event) => {
-      switch(event.key) {
-        case action.foward:
-        case 'ArrowUp':
-          state.goForward = false;
-          break;
-        case action.left:
-        case 'ArrowLeft':
-          state.turnLeft = false;
-          break;
-        case action.back:
-        case 'ArrowDown':
-          state.goBack = false;
-          break;
-        case action.right:
-        case 'ArrowRight':
-          state.turnRight = false;
-          break;
-        case action.edit:
-          if(isEditMode) {
-            isEditMode = false;
-            camera.position.y = cameraBaseHeight;
-          } else if(!isFPSMode && !isEditMode && notMove()) { 
-            isEditMode = true
-            camera.position.y = cameraEditHeight;
-          } 
-          break;
-        case action.fps: // 視点変更
-          if(isFPSMode) {
-            isFPSMode = false;
-            camera.position.y = cameraBaseHeight;
-            camera.rotation.y = 0;
-          } else if(!isEditMode) { 
-            isFPSMode = true;
-            camera.position.y = player.position.y;
-            camera.lookAt(0, floorY, -3);
-            camera.rotation.y = player.rotation.y;
-          }
-          break;
-        case action.shoot: // 弾丸の発射
-          if(!isEditMode) {
-            // Step.7 ボールを投げる！ throwing();
-            throwing(); 
-          }
-          break;
-      }
-    }, false);
-
-    function throwing() {
+  
+    function shoot() {
       const ball = new Ball(player); // オリジナルのCubeを作る呪文
       scene.add( ball.mesh );
       balls.push(ball);
