@@ -105,6 +105,7 @@ class Ball {
 
   move() {
     this.mesh.translateZ(-0.3);
+    this.mesh.position.y -= this.life < 12 ? 0.02 : 0;
     this.life--;
     if (this.life < 0) this.isNotHit = false;
   }
@@ -115,7 +116,19 @@ class Ball {
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
     if (this.boundingBox.intersectsBox(cubeBB)) {
-      cube.mesh.material.color.setHex(this.color);
+      this.isNotHit = false;
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  collision(cubeBB) {
+    // const cubeBB = cube.boundingBox;
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+    if (this.boundingBox.intersectsBox(cubeBB)) {
       this.isNotHit = false;
       return true;
     } else {

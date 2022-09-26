@@ -14,16 +14,16 @@
   <script src="./js/bear.js"></script>
   <script>
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color( 0x000000 );
+    scene.backfloor = new THREE.Color( 0x000000 );
     const floorY = 0.5;
 
+    // 今
     const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
     let balls = [];
     let padList = [];
     const points = [];
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
     const line = new THREE.Line(lineGeometry, lineMaterial);
-  
     scene.add(line);
 
     let cubes = [];
@@ -116,13 +116,92 @@
     }
 
     // Floor　床（平面）を作ろう
-    const ground = new THREE.Mesh( new THREE.PlaneGeometry(100,100), new THREE.MeshBasicMaterial({
-      color: 0xdddddd,
+    // TODO: 実験
+    const floorGeometry = new THREE.PlaneGeometry(100, 100, 100, 100).toNonIndexed();
+
+    // 一つのセグメントごとにデータが6つ（3角形2つだから）
+    const positionAttribute = floorGeometry.getAttribute('position');
+
+    const colors = [];
+    const color = new THREE.Color();
+
+    for (let i = 0; i < positionAttribute.count; i += 6) {
+      color.setHex(0xdddddd);
+      const alpha = 1;
+
+      colors.push(color.r, color.g, color.b, alpha);
+      colors.push(color.r, color.g, color.b, alpha);
+      colors.push(color.r, color.g, color.b, alpha);
+
+      colors.push(color.r, color.g, color.b, alpha);
+      colors.push(color.r, color.g, color.b, alpha);
+      colors.push(color.r, color.g, color.b, alpha);
+
+    }
+
+    floorGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+
+    const floorMaterial = new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      transparent: true,
       side: THREE.DoubleSide
-    }));
-    ground.receiveShadow = true;
-    ground.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
-    scene.add( ground ); // やっぱりシーンに追加する
+    });
+
+    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+    floor.receiveShadow = true;
+    floor.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
+    scene.add( floor ); // やっぱりシーンに追加する
+
+    let floorBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
+    floorBB.setFromObject(floor);  // BoundingBoxとMeshと紐づける！
+
+
+    function updateFloor(position, color = 0x9696ff) {
+      console.log(position) // ex_2, -2 -> 52, 48 => 2496
+      const c = new THREE.Color();
+      c.setHex(color);
+      const a = 1;
+      const baseIndex = ((Math.floor(position.x) + 50) * 24) + (((Math.floor(position.z)) + 50) * 2400);
+
+      let index = baseIndex - 4800 - 24;
+      for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
+        colors[i + 0] = c.r;
+        colors[i + 1] = c.g;
+        colors[i + 2] = c.b;
+        colors[i + 3] = a;
+      }
+
+      index = baseIndex -2400 - 24 - 24;
+      for (let i = index; i < index + ((6 * 4) * 4); i += 4) {
+        colors[i + 0] = c.r;
+        colors[i + 1] = c.g;
+        colors[i + 2] = c.b;
+        colors[i + 3] = a;
+      }
+
+      index = baseIndex - 24 - 24;
+      for (let i = index; i < index + ((6 * 4) * 4); i += 4) {
+        colors[i + 0] = c.r;
+        colors[i + 1] = c.g;
+        colors[i + 2] = c.b;
+        colors[i + 3] = a;
+      }
+
+      index = baseIndex + 2400 - 24;
+      for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
+        colors[i + 0] = c.r;
+        colors[i + 1] = c.g;
+        colors[i + 2] = c.b;
+        colors[i + 3] = a;
+      }
+
+      floor.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
+      floor.geometry.colorsNeedUpdate = true;
+    }
+
+
+
+
 
     // 動いた時に線を描きたい場合は呼び出す関数
     function drawLine() {
@@ -266,6 +345,8 @@
               strongMagnitude: 1.0,
             });
           }
+
+          updateFloor(cube.position, 0xff6464);
         }
       })
 
@@ -277,7 +358,18 @@
 
       balls.forEach((ball, i) =>{
         ball.move();
-        cubes.forEach(cube => { ball.collision(cube) });
+        cubes.forEach(cube => {
+          if(ball.collision(cube.boundingBox)) {
+            cube.mesh.material.color.setHex(ball.color);
+            this.isNotHit = false;
+            updateFloor(cube.mesh.position);
+          }
+        });
+
+        // 床も塗ろう
+        if(ball.collision(floorBB)) {
+          updateFloor(ball.mesh.position);
+        }
         
         if(!ball.isNotHit) {
           balls.splice(i, 1);
@@ -323,9 +415,9 @@
       if(intersects.length > 0){
         const point = intersects[0].point;
       
-        // Grid上に置くため，四捨五入しておく
-        const x = Math.round(point.x);
-        const z = Math.round(point.z);
+        // Grid上に置くため，切り捨てしておく
+        const x = Math.floor(point.x);
+        const z = Math.floor(point.z);
 
         // TODO: x + 50とか避けて変数に。
         if(cubesFlag[z + 50][x + 50]) {
