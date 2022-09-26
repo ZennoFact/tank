@@ -14,7 +14,7 @@
   <script src="./js/bear.js"></script>
   <script>
     const scene = new THREE.Scene();
-    scene.backfloor = new THREE.Color( 0x000000 );
+    scene.background = new THREE.Color( 0x000000 );
     const floorY = 0.5;
 
     // 今
@@ -100,8 +100,8 @@
     // Step.1 シーンに追加する scene.add( player );
     scene.add( player );  
 
-    let playerBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
-    playerBB.setFromObject(player);  // BoundingBoxとMeshと紐づける！
+    player.bb = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
+    player.bb.setFromObject(player);  // BoundingBoxとMeshと紐づける！
 
 
     // wall 作ろうかと思ったけど，まあいっか
@@ -152,8 +152,8 @@
     floor.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
     scene.add( floor ); // やっぱりシーンに追加する
 
-    let floorBB = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
-    floorBB.setFromObject(floor);  // BoundingBoxとMeshと紐づける！
+    floor.bb = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
+    floor.bb.setFromObject(floor);  // BoundingBoxとMeshと紐づける！
 
 
     function updateFloor(position, color = 0x9696ff) {
@@ -200,9 +200,6 @@
     }
 
 
-
-
-
     // 動いた時に線を描きたい場合は呼び出す関数
     function drawLine() {
       points.push(new THREE.Vector3(player.position.x, player.position.y, player.position.z));
@@ -210,7 +207,7 @@
     }
 
 
-    // TODO: 暫定で設置した玉の発射間隔
+    // 各種ボタン連打・弾丸発射間隔の計測用変数
     let interval = 0;
     let intervalX = 0;
     let intervalY = 0;
@@ -237,14 +234,7 @@
             if(interval < 0) {
               shoot();
               player.translateZ(0.3);
-              interval = 30;
-              // 反動を震えさせたいなら
-              // pad.vibrationActuator.playEffect('dual-rumble', {
-              //   startDelay: 0,
-              //   duration: 50,
-              //   weakMagnitude: 0.7,
-              //   strongMagnitude: 0.7,
-              // });
+              interval = 30; // 連射速度を制御
             }
           }
 
@@ -329,10 +319,10 @@
         player.position.y -= 0.98;
       }
 
-      playerBB.copy(player.geometry.boundingBox).applyMatrix4(player.matrixWorld); // 動くたびにバウンディングボックスをコピー
+      player.bb.copy(player.geometry.boundingBox).applyMatrix4(player.matrixWorld); // 動くたびにバウンディングボックスをコピー
       cubes.forEach(cube => { // 一つ一つのキューブを取り出して，
-        // Step.6 衝突の検知 cube.collision(playerBB);
-        const result = cube.collision(playerBB);
+        // Step.6 衝突の検知 cube.collision(player.bb);
+        const result = cube.collision(player.bb);
 
         if (result) {
           const padList = navigator.getGamepads();
@@ -357,6 +347,14 @@
 
 
       balls.forEach((ball, i) =>{
+        console.log(ball)
+        if(isFPSMode) {
+          ball.mesh.material.transparent = true;
+          ball.mesh.material.opacity = 0.5;
+        } else {
+          ball.mesh.material.transparent = false;
+          ball.mesh.material.opacity = 1.0;
+        }
         ball.move();
         cubes.forEach(cube => {
           if(ball.collision(cube.boundingBox)) {
@@ -367,7 +365,7 @@
         });
 
         // 床も塗ろう
-        if(ball.collision(floorBB)) {
+        if(ball.collision(floor.bb)) {
           updateFloor(ball.mesh.position);
         }
         
