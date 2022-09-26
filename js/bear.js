@@ -105,7 +105,7 @@ class Ball {
 
   move() {
     this.mesh.translateZ(-0.3);
-    this.mesh.position.y += this.life < 20 ? -0.06 : +0.01;
+    this.mesh.position.y += this.life < 25 ? -0.05 : +0.005;
     this.life--;
     if (this.life < 0) this.isNotHit = false;
   }

@@ -46,6 +46,7 @@
     }
     let isEditMode = false;
     let isFPSMode = false;
+    let isDiveMode = false;
 
     const cameraBaseHeight = 20;
     const cameraEditHeight = 70;
@@ -157,6 +158,28 @@
     floor.bb.setFromObject(floor);  // BoundingBoxとMeshと紐づける！
 
 
+    function isPlayerArea(position, color = 0x9696ff) {
+      const c = new THREE.Color();
+      c.setHex(color);
+      const a = 1;
+      const baseIndex = ((Math.floor(position.x) + 50) * 24) + (((Math.floor(position.z)) + 50) * 2400);
+
+      let index = baseIndex - 2400 - 24;
+      for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
+        if (colors[i + 0] !== c.r) return false;
+        if (colors[i + 1] !== c.g) return false;
+        if (colors[i + 2] !== c.b) return false;
+      }
+      index = baseIndex - 24;
+      for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
+        if (colors[i + 0] !== c.r) return false;
+        if (colors[i + 1] !== c.g) return false;
+        if (colors[i + 2] !== c.b) return false;
+      }
+
+      return true;
+    }
+
     function updateFloor(position, color = 0x9696ff) {
       const c = new THREE.Color();
       c.setHex(color);
@@ -210,6 +233,7 @@
     // 各種ボタン連打・弾丸発射間隔の計測用変数
     const interval = {
       triger: 0,
+      lTriger: 0,
       x: 0,
       y: 0,
       rb: 0
@@ -229,6 +253,7 @@
         const rTriger = pad.buttons[config.button.rt].pressed; 
         const upDown = pad.axes[config.stick.leftY];
         const LR = pad.axes[config.stick.rightX];
+        const lTriger = pad.buttons[config.button.lt].pressed; 
 
         // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
         // 移動
@@ -241,13 +266,34 @@
               interval.triger = 30; // 連射速度を制御
             }
           }
+        
+          // 潜行 TODO: 潜っているときの自機の位置が不明。
+          if(lTriger) {
+            if(interval.lTriger < 0 && isPlayerArea(player.position)) {
+              player.position.y = -0.5;
+              isDiveMode = true;
+            } else if(isDiveMode && !isPlayerArea(player.position)) {
+              isDiveMode = false;
+              interval.lTriger = 50; // 連射速度を制御
+              player.position.y = floorY;
+            }
+          } else if(!lTriger && !isDiveMode) {
+            interval.lTriger--;
+            player.position.y = floorY;
+          } else if (isDiveMode) {
+            isDiveMode = false;
+            interval.lTriger = 50; // 連射速度を制御
+            player.position.y = floorY;
+          }
 
           // TODO: 撃っている間は動きを鈍らせてもいいかもね
           if(upDown < -0.3 ) {
-            const speed = 0.1 * upDown;
+            let speed = 0.1 * upDown;
+            if (isDiveMode) speed *= 2;
             player.translateZ(speed);
           } else if(upDown > 0.3) {
-            const speed = 0.1 * upDown;
+            let speed = 0.1 * upDown;
+            if (isDiveMode) speed *= 2;
             player.translateZ(speed);
           }
           
@@ -430,6 +476,8 @@
       const intersects = raycaster.intersectObjects(scene.children);
 
       if(intersects.length > 0){
+        console.log(intersects[0].object === floor)
+        
         const point = intersects[0].point;
       
         // Grid上に置くため，切り捨てしておく
@@ -438,6 +486,7 @@
 
         // TODO: x + 50とか避けて変数に。
         if(cubesFlag[z + 50][x + 50]) {
+          if(intersects[0].object === floor) return;
           // meshがあったら削除
           meshClear(intersects[0].object, x + 50, z + 50);
           return;
