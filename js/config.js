@@ -10,6 +10,8 @@ const config = {
     rt: 7,
     back: 8,
     start: 9,
+    lStick: 10,
+    rStick: 11,
   },
   stick: {
     leftX: 0,

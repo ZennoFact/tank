@@ -235,7 +235,7 @@
       triger: 0,
       lTriger: 0,
       x: 0,
-      y: 0,
+      rs: 0,
       rb: 0
     }
 
@@ -253,7 +253,9 @@
         const rTriger = pad.buttons[config.button.rt].pressed; 
         const upDown = pad.axes[config.stick.leftY];
         const LR = pad.axes[config.stick.rightX];
-        const lTriger = pad.buttons[config.button.lt].pressed; 
+        const lTriger = pad.buttons[config.button.lt].pressed;
+        const lStick = pad.buttons[config.button.lStick].pressed;
+        const rStick = pad.buttons[config.button.rStick].pressed;
 
         // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
         // 移動
@@ -308,14 +310,15 @@
         }
 
         // モード変更　FPS
-        interval.y--;
-        if(yBtn) {
-          if (interval.y < 0) {
-            interval.y = 20;
+        interval.rs--;
+        if(rStick) {
+          if (interval.rs < 0) {
+            interval.rs = 20;
 
             if(isFPSMode) {
               isFPSMode = false;
               camera.position.y = cameraBaseHeight;
+              if (isDiveMode) camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
               camera.rotation.y = 0;
               camera.lookAt(player.position.x, player.position.y, player.position.z);
             } else { 
