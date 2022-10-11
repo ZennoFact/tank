@@ -43,7 +43,7 @@ class Block {
     // this.collision;
     this.position = position;
     this.mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
+      new THREE.BoxGeometry(1, 2, 1),
       new THREE.MeshBasicMaterial({ color: this.color })
     );
     this.mesh.position.set(position.x, position.y, position.z);

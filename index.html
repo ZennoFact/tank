@@ -241,9 +241,6 @@
       rb: 0
     }
 
-
-    // TODO: test
-    let rat = 0;
     function animate() {
       requestAnimationFrame( animate );
 
@@ -319,8 +316,8 @@
           }
           
           if(LR < -0.3 || 0.3 < LR) {
-            const deg = 0.02 * LR;
-            player.rotation.y -= deg;
+            const rad = 0.02 * LR;
+            player.rotation.y -= rad;
           }
 
           switch(currentState) {
@@ -330,17 +327,20 @@
               // TODO: 入れるか迷う（なんか酔いそう？）
               // camera.rotation.z = player.rotation.y;
               break;
-            case viewMode.thirdPerson:
+              case viewMode.thirdPerson:
               camera.rotation.y = player.rotation.y
-
+              
               const rad = -player.rotation.y + (90 * Math.PI / 180);
               camera.position.y = player.position.y + 2;
               camera.position.x = player.position.x + cameraDistance * Math.cos(rad);
               camera.position.z = player.position.z + cameraDistance * Math.sin(rad);
+              
               break;
             case viewMode.firstPerson:
               camera.position.x = player.position.x;
               camera.position.z = player.position.z;
+              if (isDiveMode) camera.position.y = 0.1;
+              else camera.position.y = player.position.y;
               
               camera.rotation.y = player.rotation.y;
               break;
@@ -352,34 +352,8 @@
         if(rStick) {
           if (interval.rs < 0 && !isEditMode) {
             interval.rs = 20;
-
             currentState = (currentState + 1) % 3;
-            
-            switch(currentState) {
-              case viewMode.birdsEye:
-                camera.position.y = cameraBaseHeight;
-                if (isDiveMode) camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
-                camera.rotation.y = 0;
-                camera.position.z = player.position.z;
-                camera.lookAt(player.position.x, player.position.y, player.position.z);
-                break;
-                case viewMode.thirdPerson:
-                camera.rotation.y = player.rotation.y
-
-                const rad = -player.rotation.y + (90 * Math.PI / 180);
-                camera.position.y = player.position.y + 2;
-                camera.position.x = cameraDistance * Math.cos(rad);
-                camera.position.z = cameraDistance * Math.sin(rad);
-
-                camera.lookAt(player.position.x, player.position.y + 2, player.position.z - 2);
-                break;
-              case viewMode.firstPerson:
-                camera.position.y = player.position.y;
-                camera.position.z = player.position.z;
-                camera.rotation.y = player.rotation.y;
-                camera.lookAt(player.position.x, floorY, player.position.z - 1);
-                break;
-            }
+            setCamera(currentState);
           }
         }
 
@@ -391,9 +365,7 @@
 
             if(isEditMode) {
               isEditMode = false;
-              camera.position.y = cameraBaseHeight;
-              camera.position.x = player.position.x;
-              camera.position.z = player.position.z;
+              setCamera(currentState);
             } else { 
               isEditMode = true;
               // TODO: モードに応じた視点に変更
@@ -497,6 +469,37 @@
     }
     function subWeapon1() {
       updateFloor(player.position);
+    }
+
+    function setCamera(state) {
+      switch(state) {
+        case viewMode.birdsEye:
+          camera.position.y = cameraBaseHeight;
+          camera.rotation.y = 0;
+          camera.position.z = player.position.z;
+          camera.lookAt(player.position.x, player.position.y, player.position.z);
+          break;
+        case viewMode.thirdPerson:
+          camera.rotation.y = player.rotation.y;
+          
+          console.log(player.rotation.y);
+          const rad = -player.rotation.y + (90 * Math.PI / 180);
+          console.log(player.rotation.y, rad);
+
+          camera.position.y = player.position.y + 2;
+          camera.position.x = player.position.x + Math.abs(cameraDistance * Math.cos(rad));
+          camera.position.z = player.position.z + Math.abs(cameraDistance * Math.sin(rad));
+          
+          camera.lookAt(player.position.x, player.position.y + 2, player.position.z - 2);
+          break;
+        case viewMode.firstPerson:
+          camera.position.y = player.position.y;
+          if (isDiveMode) camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
+          camera.position.z = player.position.z;
+          camera.rotation.y = player.rotation.y;
+          camera.lookAt(player.position.x, floorY, player.position.z - 1);
+          break;
+      }
     }
 
     const raycaster = new THREE.Raycaster();
