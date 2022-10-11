@@ -45,8 +45,12 @@
       });
     }
     let isEditMode = false;
-    let isFPSMode = false;
     let isDiveMode = false;
+    
+    let cameraDistance = 8;
+
+    let currentState = viewMode.birdsEye; 
+    let weapon = weaponMode.main;
 
     const cameraBaseHeight = 20;
     const cameraEditHeight = 70;
@@ -103,8 +107,6 @@
 
     player.bb = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
     player.bb.setFromObject(player);  // BoundingBoxとMeshと紐づける！
-    // 基本はショットから
-    player.isShooter = true;
 
     // wall 作ろうかと思ったけど，まあいっか
 
@@ -239,6 +241,9 @@
       rb: 0
     }
 
+
+    // TODO: test
+    let rat = 0;
     function animate() {
       requestAnimationFrame( animate );
 
@@ -262,10 +267,24 @@
         if(!isEditMode) {
           // ボールを投げる
           interval.triger--;
+          interval.rb--;
           if(rTriger) {
             if(interval.triger < 0) {
-              shoot();
-              interval.triger = 30; // 連射速度を制御
+              if(weapon !== weaponMode.main) weapon = weaponMode.main;
+              if(weapon === weaponMode.main) {
+                shoot();
+                interval.triger = 30; // 連射速度を制御
+              }
+            }
+          } else {
+            if(rbBtn) {
+              if (interval.rb < 0) {
+                if(weapon !== weaponMode.sub1) weapon = weaponMode.sub1;
+                if(weapon === weaponMode.sub1) {
+                  subWeapon1();
+                  interval.rb = 30;
+                }
+              }
             }
           }
         
@@ -288,7 +307,7 @@
             player.position.y = floorY;
           }
 
-          // TODO: 撃っている間は動きを鈍らせてもいいかもね
+          // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
           if(upDown < -0.3 ) {
             let speed = 0.1 * upDown;
             if (isDiveMode) speed *= 2;
@@ -304,29 +323,62 @@
             player.rotation.y -= deg;
           }
 
-          if(isFPSMode) {
-            camera.rotation.y = player.rotation.y;
+          switch(currentState) {
+            case viewMode.birdsEye:
+              camera.position.x = player.position.x;
+              camera.position.z = player.position.z;
+              // TODO: 入れるか迷う（なんか酔いそう？）
+              // camera.rotation.z = player.rotation.y;
+              break;
+            case viewMode.thirdPerson:
+              camera.rotation.y = player.rotation.y
+
+              const rad = -player.rotation.y + (90 * Math.PI / 180);
+              camera.position.y = player.position.y + 2;
+              camera.position.x = player.position.x + cameraDistance * Math.cos(rad);
+              camera.position.z = player.position.z + cameraDistance * Math.sin(rad);
+              break;
+            case viewMode.firstPerson:
+              camera.position.x = player.position.x;
+              camera.position.z = player.position.z;
+              
+              camera.rotation.y = player.rotation.y;
+              break;
           }
         }
 
-        // モード変更　FPS
+        // 視点変更
         interval.rs--;
         if(rStick) {
-          if (interval.rs < 0) {
+          if (interval.rs < 0 && !isEditMode) {
             interval.rs = 20;
 
-            if(isFPSMode) {
-              isFPSMode = false;
-              camera.position.y = cameraBaseHeight;
-              if (isDiveMode) camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
-              camera.rotation.y = 0;
-              camera.lookAt(player.position.x, player.position.y, player.position.z);
-            } else { 
-              isFPSMode = true;
-              isEditMode = false;
-              camera.position.y = player.position.y;
-              camera.lookAt(player.position.x, floorY, player.position.z - 1);
-              camera.rotation.y = player.rotation.y;
+            currentState = (currentState + 1) % 3;
+            
+            switch(currentState) {
+              case viewMode.birdsEye:
+                camera.position.y = cameraBaseHeight;
+                if (isDiveMode) camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
+                camera.rotation.y = 0;
+                camera.position.z = player.position.z;
+                camera.lookAt(player.position.x, player.position.y, player.position.z);
+                break;
+                case viewMode.thirdPerson:
+                camera.rotation.y = player.rotation.y
+
+                const rad = -player.rotation.y + (90 * Math.PI / 180);
+                camera.position.y = player.position.y + 2;
+                camera.position.x = cameraDistance * Math.cos(rad);
+                camera.position.z = cameraDistance * Math.sin(rad);
+
+                camera.lookAt(player.position.x, player.position.y + 2, player.position.z - 2);
+                break;
+              case viewMode.firstPerson:
+                camera.position.y = player.position.y;
+                camera.position.z = player.position.z;
+                camera.rotation.y = player.rotation.y;
+                camera.lookAt(player.position.x, floorY, player.position.z - 1);
+                break;
             }
           }
         }
@@ -344,7 +396,7 @@
               camera.position.z = player.position.z;
             } else { 
               isEditMode = true;
-              isFPSMode = false;
+              // TODO: モードに応じた視点に変更
               camera.position.y = cameraEditHeight;
               camera.position.x = 0;
               camera.position.z = 0;
@@ -353,15 +405,6 @@
           }
         }
 
-        // 武器変更
-        interval.rb--;
-        if(rbBtn) {
-          if (interval.rb < 0) {
-            interval.rb = 20;
-
-            player.isShooter = !player.isShooter;
-          }
-        }
 
         if(startBtn) {
           alert('マップを保存しました！');
@@ -404,14 +447,12 @@
         }
       })
 
-      camera.position.x = player.position.x;
-      camera.position.z = player.position.z;
       mapCamera.position.x = player.position.x;
       mapCamera.position.z = player.position.z;
 
 
       balls.forEach((ball, i) =>{
-        if(isFPSMode) {
+        if(currentState === viewMode.firstPerson) {
           ball.mesh.material.transparent = true;
           ball.mesh.material.opacity = 0.5;
         } else {
@@ -449,14 +490,13 @@
     animate();
   
     function shoot() {
-      if(player.isShooter) {
-        const ball = new Ball(player); // オリジナルのCubeを作る呪文
-        scene.add( ball.mesh );
-        balls.push(ball);
-        player.translateZ(0.3); // 反動で後退
-      } else {
-        updateFloor(player.position);
-      }
+      const ball = new Ball(player); // オリジナルのCubeを作る呪文
+      scene.add( ball.mesh );
+      balls.push(ball);
+      // player.translateZ(0.3); // 反動で後退（酔いそうなので削除）
+    }
+    function subWeapon1() {
+      updateFloor(player.position);
     }
 
     const raycaster = new THREE.Raycaster();

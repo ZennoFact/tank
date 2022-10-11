@@ -31,3 +31,14 @@ const config = {
     none: "",
   },
 };
+
+const viewMode = {
+  birdsEye: 0,
+  thirdPerson: 1,
+  firstPerson: 2,
+};
+
+const weaponMode = {
+  main: 0,
+  sub1: 1,
+};
