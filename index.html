@@ -102,6 +102,7 @@
     player.position.set(0, floorY, 0); // 位置を決めてー
     player.castShadow = true; // 影を出すようにしてー
     player.receiveShadow = true; // 影を受けるようにして―
+
     // Step.1 シーンに追加する scene.add( player );
     scene.add( player );  
 
@@ -188,6 +189,7 @@
       const a = 1;
       const baseIndex = ((Math.floor(position.x) + 50) * 24) + (((Math.floor(position.z)) + 50) * 2400);
 
+
       let index = baseIndex - 4800 - 24;
       for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
         colors[i + 0] = c.r;
@@ -219,6 +221,7 @@
         colors[i + 2] = c.b;
         colors[i + 3] = a;
       }
+
 
       floor.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
       floor.geometry.colorsNeedUpdate = true;
@@ -288,20 +291,23 @@
           // 潜行 TODO: 潜っているときの自機の位置が不明。
           if(lTriger) {
             if(interval.lTriger < 0 && isPlayerArea(player.position)) {
-              player.position.y = -0.5;
+              player.position.y = -0.35;
+              player.material.color.setHex(0x5557ff);
               isDiveMode = true;
             } else if(isDiveMode && !isPlayerArea(player.position)) {
               isDiveMode = false;
+              player.material.color.setHex(0x555749);
               interval.lTriger = 50; // 連射速度を制御
               player.position.y = floorY;
             }
           } else if(!lTriger && !isDiveMode) {
             interval.lTriger--;
             player.position.y = floorY;
-          } else if (isDiveMode) {
+          } else if (!lTriger && isDiveMode) { // TODO: いる？
             isDiveMode = false;
             interval.lTriger = 50; // 連射速度を制御
             player.position.y = floorY;
+            player.material.color.setHex(0x555749);
           }
 
           // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
@@ -494,10 +500,13 @@
           break;
         case viewMode.firstPerson:
           camera.position.y = player.position.y;
-          if (isDiveMode) camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
           camera.position.z = player.position.z;
           camera.rotation.y = player.rotation.y;
           camera.lookAt(player.position.x, floorY, player.position.z - 1);
+          if (isDiveMode) {
+            camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
+            camera.lookAt(player.position.x, 0.1, player.position.z - 1); 
+          }
           break;
       }
     }
