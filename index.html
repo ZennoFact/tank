@@ -102,6 +102,8 @@
     player.position.set(0, floorY, 0); // 位置を決めてー
     player.castShadow = true; // 影を出すようにしてー
     player.receiveShadow = true; // 影を受けるようにして―
+    // TODO: 自キャラのインク（？）の色を決定
+    player.inkColor = 0x6464ff;
 
     // Step.1 シーンに追加する scene.add( player );
     scene.add( player );  
@@ -407,7 +409,7 @@
       player.bb.copy(player.geometry.boundingBox).applyMatrix4(player.matrixWorld); // 動くたびにバウンディングボックスをコピー
       cubes.forEach(cube => { // 一つ一つのキューブを取り出して，
         // Step.6 衝突の検知 cube.collision(player.bb);
-        const result = cube.collision(player.bb);
+        const result = cube.collision(player.bb, player.inkColor);
 
         if (result) {
           const padList = navigator.getGamepads();
@@ -439,7 +441,7 @@
         }
         ball.move();
         cubes.forEach(cube => {
-          if(ball.collision(cube.boundingBox)) {
+          if(ball.collision(cube.boundingBox, cube)) {
             cube.mesh.material.color.setHex(ball.color);
             this.isNotHit = false;
             updateFloor(cube.mesh.position);

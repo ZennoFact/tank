@@ -55,11 +55,14 @@ class Block {
     this.boundingBox.setFromObject(this.mesh);
   }
 
-  collision(playerBB) {
+  collision(playerBB, playerInkColor) {
     this.boundingBox
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
-    if (this.boundingBox.intersectsBox(playerBB)) {
+    if (
+      this.boundingBox.intersectsBox(playerBB) &&
+      this.color !== playerInkColor
+    ) {
       this.mesh.material.color.setHex(this.collisionColor);
       return true;
     } else {
@@ -110,25 +113,31 @@ class Ball {
     if (this.life < 0) this.isNotHit = false;
   }
 
-  collision(cube) {
-    const cubeBB = cube.boundingBox;
-    this.boundingBox
-      .copy(this.mesh.geometry.boundingBox)
-      .applyMatrix4(this.mesh.matrixWorld);
-    if (this.boundingBox.intersectsBox(cubeBB)) {
-      this.isNotHit = false;
-      return true;
-    } else {
-      return false;
-    }
-  }
+  // TODO: floorやplayerをクラス化したら，こっちの考え方でいける
+  // collision(cube) {
+  //   const cubeBB = cube.boundingBox;
+  //   this.boundingBox
+  //     .copy(this.mesh.geometry.boundingBox)
+  //     .applyMatrix4(this.mesh.matrixWorld);
+  //   if (this.boundingBox.intersectsBox(cubeBB)) {
+  //     cube.color = this.color;
+  //     this.isNotHit = false;
+  //     return true;
+  //   } else {
+  //     return false;
+  //   }
+  // }
 
-  collision(cubeBB) {
-    // const cubeBB = cube.boundingBox;
+  collision(cubeBB, obj) {
     this.boundingBox
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
     if (this.boundingBox.intersectsBox(cubeBB)) {
+      if (obj) {
+        console.log(obj.color);
+        obj.color = this.color;
+        console.log(obj.color);
+      }
       this.isNotHit = false;
       return true;
     } else {
