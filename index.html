@@ -8,10 +8,39 @@
   <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
+  <template id="uiParts">
+    <div id="rTriger" class="ui">
+      <h2>Main</h2>
+      <p>R-Triger</p>
+    </div>
+    <div id="rButton" class="ui">
+      <h2>Sub</h2>
+      <p>R-Button</p>
+    </div>
+    <div id="dive" class="ui">
+      <h2>Dive</h2>
+      <p>L-Triger</p>
+    </div>
+    <div id="color" class="ui">
+      <h2>Color: <span class="color">6464ff</span></h2>
+    </div>
+    <div id="lStick" class="ui">
+      <h2>Move</h2>
+      <p>↑L-Stick↓</p>
+    </div>
+    <div id="rStick" class="ui">
+      <h2>Roll</h2>
+      <p>←R-Stick→</p>
+    </div>
+    <div id="view" class="ui">
+      <h2 class="mode">Bird's Eye</h2><p class="parts">R-Stick Press</p>
+    </div>
+  </template>
   <script src="./js/vendor/three.js"></script>
   <script src="./js/vendor/OBJLoader.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/bear.js"></script>
+  <script src="./js/ui.js"></script>
   <script>
     const scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x000000 );
@@ -267,8 +296,10 @@
         // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
         // 移動
         if(!isEditMode) {
+          const rt = document.querySelector('#rTriger')
           // ボールを投げる
           interval.triger--;
+          if(interval.triger === 0) rt.classList.remove('cooldown');
           interval.rb--;
           if(rTriger) {
             if(interval.triger < 0) {
@@ -276,10 +307,13 @@
               if(weapon === weaponMode.main && !isDiveMode) {
                 shoot();
                 interval.triger = 30; // 連射速度を制御
+                rt.classList.add('cooldown');
               }
             }
+            if(rbBtn) document.querySelector('#rButton').classList.remove('active');
           } else {
             if(rbBtn) {
+              document.querySelector('#rButton').classList.add('active');
               if (interval.rb < 0) {
                 if(weapon !== weaponMode.sub1) weapon = weaponMode.sub1;
                 if(weapon === weaponMode.sub1) {
@@ -287,19 +321,24 @@
                   interval.rb = 30;
                 }
               }
+            } else {
+              document.querySelector('#rButton').classList.remove('active');
             }
           }
         
           // 潜行 TODO: 潜っているときの自機の位置が不明。
           if(lTriger) {
             if(interval.lTriger < 0 && isPlayerArea(player.position)) {
+              document.querySelector('#dive').classList.add('active');
               player.position.y = -0.35;
               player.material.color.setHex(0x5557ff);
               isDiveMode = true;
             } else if(isDiveMode && !isPlayerArea(player.position)) {
               isDiveMode = false;
+              document.querySelector('#dive').classList.remove('active');
+              document.querySelector('#dive').classList.add('penalty');
               player.material.color.setHex(0x555749);
-              interval.lTriger = 50; // 連射速度を制御
+              interval.lTriger = 30; // 連射速度を制御
               player.position.y = floorY;
             }
           } else if(!lTriger && !isDiveMode) {
@@ -307,9 +346,17 @@
             player.position.y = floorY;
           } else if (!lTriger && isDiveMode) { // TODO: いる？
             isDiveMode = false;
-            interval.lTriger = 50; // 連射速度を制御
+            document.querySelector('#dive').classList.remove('active');
+            interval.lTriger = 30; // 連射速度を制御
+            if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
             player.position.y = floorY;
             player.material.color.setHex(0x555749);
+          }
+
+          if(interval.lTriger === 0) {
+            const ui = document.querySelector('#dive');
+            ui.classList.remove('cooldown');
+            ui.classList.remove('penalty');
           }
 
           // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
@@ -317,15 +364,22 @@
             let speed = 0.1 * upDown;
             if (isDiveMode) speed *= 2;
             player.translateZ(speed);
+            document.querySelector('#lStick').classList.add("active");
           } else if(upDown > 0.3) {
             let speed = 0.1 * upDown;
             if (isDiveMode) speed *= 2;
             player.translateZ(speed);
+            document.querySelector('#lStick').classList.add("active");
+          } else {
+            document.querySelector('#lStick').classList.remove("active");
           }
           
           if(LR < -0.3 || 0.3 < LR) {
+            document.querySelector('#rStick').classList.add("active");
             const rad = 0.02 * LR;
             player.rotation.y -= rad;
+          } else {
+            document.querySelector('#rStick').classList.remove("active");
           }
 
           switch(currentState) {
@@ -483,14 +537,17 @@
     }
 
     function setCamera(state) {
+      let title = document.querySelector("#view h2");
       switch(state) {
         case viewMode.birdsEye:
+          title.innerHTML = "Bird's Eye";
           camera.position.y = cameraBaseHeight;
           camera.rotation.y = 0;
           camera.position.z = player.position.z;
           camera.lookAt(player.position.x, player.position.y, player.position.z);
           break;
         case viewMode.thirdPerson:
+          title.innerHTML = "Third Person";
           camera.rotation.y = player.rotation.y;
           
           console.log(player.rotation.y);
@@ -504,6 +561,7 @@
           camera.lookAt(player.position.x, player.position.y + 2, player.position.z - 2);
           break;
         case viewMode.firstPerson:
+          title.innerHTML = "First Person";
           camera.position.y = player.position.y;
           camera.position.z = player.position.z;
           camera.rotation.y = player.rotation.y;
@@ -607,6 +665,8 @@
       console.log("Gamepad disconnected from index %d: %s",
         e.gamepad.index, e.gamepad.id);
     });
+
+    loadUI();
   </script>
 </body>
 </html>

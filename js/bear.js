@@ -134,9 +134,7 @@ class Ball {
       .applyMatrix4(this.mesh.matrixWorld);
     if (this.boundingBox.intersectsBox(cubeBB)) {
       if (obj) {
-        console.log(obj.color);
         obj.color = this.color;
-        console.log(obj.color);
       }
       this.isNotHit = false;
       return true;

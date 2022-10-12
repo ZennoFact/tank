@@ -4,10 +4,126 @@
 
 #map {
   position: absolute;
-  width: 150px;
-  height: 150px;
+  width: 230px;
+  height: 230px;
   top: 20px;
   right: 20px;
   background-color: #646464;
-  border: solid 2px #000000;
+  border: solid 5px #000000;
 }
+
+/* UI parts */
+.ui {
+  width: 200px;
+  position: absolute;
+  padding: 10px;
+  border: 5px solid #353535;
+  color: #353535;
+  font-size: 18px;
+  font-weight: bold;
+  background-color: #eee;
+  text-align: center;
+}
+
+#rTriger {
+  /* transform:skewY(-15deg);  */
+  position: absolute;
+  right: 20px;
+  bottom: 130px;
+}
+#rTriger.active {
+  background-color: #fa776d;
+}
+#rTriger.cooldown {
+  animation: rtCooldown 1.5s;
+}
+@keyframes rtCooldown {
+  0% { background: #fa776d; }
+  100% { background: eee; }
+}
+
+#rButton{
+  /* transform:skewY(-15deg);  */
+  right: 20px;
+  bottom: 20px;
+}
+#rButton.active {
+  background-color: #fc9d9a;
+}
+#rButton.cooldown {
+  animation: rbCooldown 1.5s;
+}
+@keyframes rbCooldown {
+  0% { background: #fc9d9a; }
+  100% { background: eee; }
+}
+
+#dive {
+  /* transform:skewY(15deg);  */
+  left: 20px;
+  bottom: 20px;
+}
+#dive.active {
+  background-color: #5cc0ef;
+}
+#dive.penalty {
+  background-color: #ff0000;
+}
+#dive.cooldown {
+  animation: diveCooldown 1.5s;
+}
+@keyframes diveCooldown {
+  0% { background: #5cc0ef; }
+  100% { background: eee; }
+}
+
+#color{ 
+  right: 20px;
+  top: 300px;
+  width: 230px;
+  color: #6464ff;
+}
+#lStick{
+  /* transform:rotateY(-45deg);  */
+  left: 20px;
+  bottom: 400px;
+  
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+#lStick.active {
+  background-color: #37ab9d;
+  /* border-color: #eee;
+  color: #eee; */
+}
+
+#rStick{
+  /* transform:rotateY(45deg);  */
+  right: 20px;
+  bottom: 400px;
+  
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+#rStick.active {
+  background-color: #ffc042;
+  /* border-color: #eee;
+  color: #eee; */
+}
+
+#view{
+  /* transform:skewY(15deg);  */
+  top: 20px;
+  left: 20px;
+}
+      
