@@ -273,7 +273,7 @@
           if(rTriger) {
             if(interval.triger < 0) {
               if(weapon !== weaponMode.main) weapon = weaponMode.main;
-              if(weapon === weaponMode.main) {
+              if(weapon === weaponMode.main && !isDiveMode) {
                 shoot();
                 interval.triger = 30; // 連射速度を制御
               }
@@ -414,7 +414,6 @@
         if (result) {
           const padList = navigator.getGamepads();
           if (padList[0]) {
-            // padList[0].GamepadHapticActuator[0].pulse(1.0, 30);
             padList[0].vibrationActuator.playEffect('dual-rumble', {
               startDelay: 0,
               duration: 100,
@@ -422,6 +421,9 @@
               strongMagnitude: 1.0,
             });
           }
+
+          // ぶつかったらしばらく玉が撃てないように
+          interval.triger = 30;
 
           updateFloor(cube.position, 0xff6464);
         }
