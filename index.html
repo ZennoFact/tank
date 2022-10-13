@@ -38,6 +38,7 @@
     </div>
   </template>
   <script src="./js/vendor/three.js"></script>
+  <script src="./js/vendor/MTLLoader.js"></script>
   <script src="./js/vendor/OBJLoader.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/object.js"></script>
@@ -50,11 +51,48 @@
     // 今
     const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
     let balls = [];
+    let ps = [];
     let padList = [];
     const points = [];
     const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
     const line = new THREE.Line(lineGeometry, lineMaterial);
     scene.add(line);
+
+
+    let pumpkinSeed;
+    new THREE.MTLLoader()
+      .setPath('./assets/texture/')
+      .load('obj.mtl',function(materials){
+        materials.preload();
+        new THREE.OBJLoader()
+          .setPath('./assets/object/')
+          .setMaterials(materials)
+          .load('pumpkin.obj',function (object){
+            /* TODO: 最適化必要 */
+            // const icosahedronLine = new THREE.LineSegments(
+            //   new THREE.EdgesGeometry(object.children[1].geometry), // 線を生成する元になるgeometry
+            //   new THREE.LineBasicMaterial({ color: 0xd92a03 }) // 線のmaterial
+            // );
+            // icosahedronLine.scale.x = 0.03;
+            // icosahedronLine.scale.y = 0.03;
+            // icosahedronLine.scale.z = 0.03;
+            // icosahedronLine.position.y = 2;
+            // icosahedronLine.rotation.x = -90;
+            // object.children.push(icosahedronLine);
+            /* TODO: 最適化必要 ここまで */
+            
+            object.castShadow = true;
+            object.receiveShadow = true;
+            object.position.y = player.position.y;
+            object.scale.x = 0.04;
+            object.scale.y = 0.04;
+            object.scale.z = 0.04;
+            object.rotation.x = -90;
+            pumpkinSeed = object;
+          }); 
+        });
+
+
 
     let cubes = [];
     const cubesFlag = [];
@@ -91,13 +129,17 @@
     // scene.add(gridHqelper);
 
     // ライトを付けます
-    const ambientLight = new THREE.AmbientLight( 0x242424 );
+    const ambientLight = new THREE.AmbientLight( 0xffffff );
 		scene.add(ambientLight);
+
+    // TODO: ライトと影，つける？
+
     
     // 描画用の部品を作って
     const renderer = new THREE.WebGLRenderer({
         alpha: true
     });
+    renderer.shadowMap.enabled = true;
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement ); // 画面に部品を登録します
     
@@ -487,6 +529,10 @@
       });
       balls = balls.filter(b => b.isNotHit);
 
+      ps.forEach(p => {
+        p.move();
+      });
+
       renderer.render( scene, camera );
       mapRenderer.render( scene, mapCamera);
     }
@@ -499,6 +545,13 @@
       scene.add( ball.mesh );
       balls.push(ball);
       // player.translateZ(0.3); // 反動で後退（酔いそうなので削除）
+
+      // TODO: かぼちゃの生成
+      if (pumpkinSeed) {
+        const pumpkin = new Pumpkin(player, pumpkinSeed);
+        scene.add(pumpkin.mesh);
+        ps.push(pumpkin);
+      }
     }
     function subWeapon1() {
       splash(player.mesh.position, player.color.splash);

@@ -1,39 +1,3 @@
-class Bear {
-  constructor(color = 0x555749) {
-    const body = new THREE.Group();
-
-    this.x = 0;
-    this.y = 0;
-
-    this.color = color;
-    this.state = {
-      goForward: false,
-      turnLeft: false,
-      turnRight: false,
-      goBack: false,
-    };
-  }
-
-  // 射撃
-  fire() {}
-  // 移動
-  move() {}
-  // 旋回
-  turn() {}
-
-  // TODO: 3D（FPS）にするなら付けたい
-  sonar() {} // これを使って索敵（ただばれる可能性あり）とかできると面白そう（詳細決定と実装めんどくさい？）
-  aim() {} // ジョイスティックでもないと厳しそう
-
-  create(body) {
-    const geometry = new THREE.BoxGeometry(1, 1, 2);
-    const material = new THREE.MeshBasicMaterial({ color: 0x555749 });
-    const mesh = new THREE.Mesh(geometry, material);
-    mesh.position.set(0, 1, 0);
-    return mesh;
-  }
-}
-
 class SplaObject {
   constructor(color) {
     this.color = color;
@@ -200,5 +164,46 @@ class Floor extends SplaObject {
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
     return this.boundingBox;
+  }
+}
+
+class Pumpkin extends SplaObject {
+  constructor(player, seed) {
+    super(player.color);
+
+    const position = player.mesh.position;
+    this.isNotHit = true;
+    this.life = 100;
+
+    this.mesh = seed.clone();
+    this.mesh.position.set(position.x, position.y, position.z);
+
+    // 接触判定用BoundingBox
+    this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    this.boundingBox.setFromObject(this.mesh);
+  }
+
+  move() {
+    // TODO: おもろい動きの検討
+    this.mesh.position.y += 0.1;
+    this.mesh.rotation.z += 0.05;
+    this.mesh.scale.x += 0.001;
+    this.mesh.scale.y += 0.001;
+    this.mesh.scale.z += 0.001;
+    this.life--;
+    if (this.life < 0) this.isNotHit = false; // 時間で爆発？
+  }
+
+  collision(obj) {
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+    if (this.boundingBox.intersectsBox(obj.boundingBox)) {
+      obj.color = this.color;
+      this.isNotHit = false;
+      return true;
+    } else {
+      return false;
+    }
   }
 }
