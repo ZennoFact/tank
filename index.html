@@ -23,6 +23,7 @@
     </div>
     <div id="color" class="ui">
       <h2>Color: #<span class="color">6464ff</span></h2>
+      <p>L-Button</p>
     </div>
     <div id="lStick" class="ui">
       <h2>Move</h2>
@@ -223,7 +224,7 @@
       triger: 0,
       lTriger: 0,
       x: 0,
-      y: 0,
+      lb: 0,
       rs: 0,
       rb: 0
     }
@@ -236,6 +237,7 @@
         const pad = padList[0];
         const xBtn = pad.buttons[config.button.x].pressed;
         const yBtn = pad.buttons[config.button.y].pressed;
+        const lBtn = pad.buttons[config.button.lb].pressed;
         const rbBtn = pad.buttons[config.button.rb].pressed;
         const backBtn = pad.buttons[config.button.back].pressed;
         const startBtn = pad.buttons[config.button.start].pressed;
@@ -394,10 +396,10 @@
         }
 
         // 色変更 
-        interval.y--;
-        if(yBtn) {
-          if (interval.y < 0) {
-            interval.y = 20;
+        interval.lb--;
+        if(lBtn) {
+          if (interval.lb < 0) {
+            interval.lb = 30;
 
             colorIndex = (colorIndex + 1) % 4;
             player.color = colorList[colorIndex];

@@ -78,8 +78,8 @@
 }
 
 #color{ 
-  right: 20px;
-  top: 300px;
+  left: 20px;
+  top: 130px;
   width: 230px;
   color: #6464ff;
 }
@@ -98,12 +98,10 @@
 }
 #lStick.active {
   background-color: #37ab9d;
-  /* border-color: #eee;
-  color: #eee; */
+
 }
 
 #rStick{
-  /* transform:rotateY(45deg);  */
   right: 20px;
   bottom: 400px;
   
@@ -117,13 +115,12 @@
 }
 #rStick.active {
   background-color: #ffc042;
-  /* border-color: #eee;
-  color: #eee; */
 }
 
 #view{
   /* transform:skewY(15deg);  */
   top: 20px;
   left: 20px;
+  width: 230px;
 }
       
