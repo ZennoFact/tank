@@ -159,19 +159,19 @@
     const positionAttribute = floorGeometry.getAttribute('position');
 
     const colors = [];
-    const color = new THREE.Color();
+    const floorColor = new THREE.Color();
 
     for (let i = 0; i < positionAttribute.count; i += 6) {
-      color.setHex(0xdddddd);
+      floorColor.setHex(0xdddddd);
       const alpha = 1;
 
-      colors.push(color.r, color.g, color.b, alpha);
-      colors.push(color.r, color.g, color.b, alpha);
-      colors.push(color.r, color.g, color.b, alpha);
+      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
 
-      colors.push(color.r, color.g, color.b, alpha);
-      colors.push(color.r, color.g, color.b, alpha);
-      colors.push(color.r, color.g, color.b, alpha);
+      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
 
     }
 
@@ -480,7 +480,7 @@
           interval.triger = 30;
           interval.rb = 30;
 
-          updateFloor(cube.position, 0xff6464);
+          updateFloor(cube.position, color.player2.floor);
         }
       })
 

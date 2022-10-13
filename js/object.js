@@ -34,14 +34,15 @@ class Bear {
   }
 }
 
-// Meshはcloneして使いまわせないか。→色の変化が一気に出たので一旦却下
-
+class Player {}
 class Block {
-  color = 0xff6464;
-  collisionColor = 0xff2424;
+  // color = 0xff6464;
+  // collisionColor = 0xff2424;
+
   constructor(position) {
     // this.collision;
     this.position = position;
+    this.color = color.wall;
     this.mesh = new THREE.Mesh(
       new THREE.BoxGeometry(1, 2, 1),
       new THREE.MeshBasicMaterial({ color: this.color })
@@ -63,11 +64,11 @@ class Block {
       this.boundingBox.intersectsBox(playerBB) &&
       this.color !== playerInkColor
     ) {
-      this.mesh.material.color.setHex(this.collisionColor);
+      this.mesh.material.color.setHex(color.player2.ink);
       return true;
-    } else {
+    } else if (this.color === color.wall) {
       // 色を戻したいときはここのコメントを解除
-      // this.mesh.material.color.setHex(this.color);
+      this.mesh.material.color.setHex(color.wall);
       return false;
     }
 
