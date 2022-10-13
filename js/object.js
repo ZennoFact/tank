@@ -34,18 +34,30 @@ class Bear {
   }
 }
 
-class Player {}
-class Block {
-  // color = 0xff6464;
-  // collisionColor = 0xff2424;
+class Player {
+  constructor(position, playerColor = color.player1) {
+    this.position = position;
+    this.color = playerColor;
+    this.mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(0.8, 0.8, 1.6), // 形状の指定
+      new THREE.MeshBasicMaterial({ color: color.body }) // ポリゴンメッシュ（略してメッシュ）。多角形の面の集合体
+    );
+    this.mesh.position.set(position.x, position.y, position.z);
+    this.mesh.castShadow = true;
+    this.mesh.receiveShadow = true;
 
+    // 接触判定用BoundingBox
+    this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    this.boundingBox.setFromObject(this.mesh);
+  }
+}
+class Block {
   constructor(position) {
-    // this.collision;
     this.position = position;
     this.color = color.wall;
     this.mesh = new THREE.Mesh(
       new THREE.BoxGeometry(1, 2, 1),
-      new THREE.MeshBasicMaterial({ color: this.color })
+      new THREE.MeshBasicMaterial({ color: this.color.ink })
     );
     this.mesh.position.set(position.x, position.y, position.z);
     this.mesh.castShadow = true;
@@ -64,39 +76,36 @@ class Block {
       this.boundingBox.intersectsBox(playerBB) &&
       this.color !== playerInkColor
     ) {
-      this.mesh.material.color.setHex(color.player2.ink);
-      return true;
+      this.mesh.material.color.setHex(color.danger);
+      return { isHit: true, color: this.color };
     } else if (this.color === color.wall) {
-      // 色を戻したいときはここのコメントを解除
-      this.mesh.material.color.setHex(color.wall);
-      return false;
+      this.mesh.material.color.setHex(color.wall.ink);
+    } else {
+      this.mesh.material.color.setHex(this.color.ink);
     }
+    return { isHit: false, color: color.wall };
 
-    // TODO: 完全に重なったら？は今のところ考えない
-    // if (this.boundingBox.containsBox(playerBB)) {
-    //   this.mesh.position.y = 1.5;
-    // } else {
-    //   this.mesh.position.y = 1;
-    // }
+    // 完全に重なったら？は今のところ考えない
+    // if (this.boundingBox.containsBox(playerBB)) {}
   }
 }
 
 class Ball {
-  color = 0x6464ff;
   constructor(player) {
-    const position = player.position;
+    const position = player.mesh.position;
     this.isNotHit = true;
     this.life = 100;
+    this.color = player.color;
 
     this.mesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.3, 32, 16),
-      new THREE.MeshBasicMaterial({ color: this.color })
+      new THREE.MeshBasicMaterial({ color: this.color.ink })
     );
     this.mesh.position.set(position.x, position.y, position.z);
     this.mesh.rotation.set(
-      player.rotation.x,
-      player.rotation.y,
-      player.rotation.z
+      player.mesh.rotation.x,
+      player.mesh.rotation.y,
+      player.mesh.rotation.z
     );
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;

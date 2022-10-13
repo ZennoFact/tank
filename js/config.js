@@ -45,9 +45,12 @@ const weaponMode = {
 
 const color = {
   body: 0x555749,
-  wall: 0x888a7c, // TODO: 壁の色調整
-  danger: 0xff2424,
-  floor: 0xdddddd,
+  wall: {
+    ink: 0x888a7c,
+    splash: 0xdddddd,
+  },
+  danger: 0xff0000,
+  floor: 0xdddddd, // TODO: これ，壁のスプラッシュに巻き込む？
   pumpkin: 0xffa500,
   player1: {
     // 青系
@@ -62,7 +65,7 @@ const color = {
   player3: {
     // 黄系
     ink: 0xf6a807,
-    splash: 0xfffe01,
+    splash: 0xfbd509,
   },
   player4: {
     // 緑系
