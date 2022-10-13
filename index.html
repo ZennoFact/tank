@@ -130,10 +130,6 @@
     const player = new Player({x: 3, y: floorY, z: 3}, colorList[0]);
     scene.add(player.mesh);
 
-    // TODO: playerクラスにまとめる
-    player.bb = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
-    player.bb.setFromObject(player.mesh);  // BoundingBoxとMeshと紐づける！
-
     // wall 
     if(cubes.length === 0) {
       const cube = new Block({x:2, y: floorY, z: -2}); // オリジナルのCubeを作る呪文
@@ -144,45 +140,8 @@
     }
 
     // Floor　床（平面）を作ろう
-    // TODO: 実験
-    const floorGeometry = new THREE.PlaneGeometry(100, 100, 100, 100).toNonIndexed();
-
-    // 一つのセグメントごとにデータが6つ（3角形2つだから）
-    const positionAttribute = floorGeometry.getAttribute('position');
-
-    const colors = [];
-    const floorColor = new THREE.Color();
-
-    for (let i = 0; i < positionAttribute.count; i += 6) {
-      floorColor.setHex(0xdddddd);
-      const alpha = 1;
-
-      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
-      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
-      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
-
-      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
-      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
-      colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
-
-    }
-
-    floorGeometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
-
-    const floorMaterial = new THREE.MeshBasicMaterial({
-      vertexColors: true,
-      transparent: true,
-      side: THREE.DoubleSide
-    });
-
-    const floor = new THREE.Mesh(floorGeometry, floorMaterial);
-    floor.receiveShadow = true;
-    floor.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
-    scene.add( floor ); // やっぱりシーンに追加する
-
-    floor.bb = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3()); // 接触判定用のBoundingBox（輪郭の箱）を用意
-    floor.bb.setFromObject(floor);  // BoundingBoxとMeshと紐づける！
-
+    const floor = new Floor(color.floor);
+    scene.add( floor.mesh ); // やっぱりシーンに追加する
 
     function isPlayerArea(player) {
       const position = player.mesh.position;
@@ -193,15 +152,15 @@
 
       let index = baseIndex - 2400 - 24;
       for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
-        if (colors[i + 0] !== c.r) return false;
-        if (colors[i + 1] !== c.g) return false;
-        if (colors[i + 2] !== c.b) return false;
+        if (floor.colors[i + 0] !== c.r) return false;
+        if (floor.colors[i + 1] !== c.g) return false;
+        if (floor.colors[i + 2] !== c.b) return false;
       }
       index = baseIndex - 24;
       for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
-        if (colors[i + 0] !== c.r) return false;
-        if (colors[i + 1] !== c.g) return false;
-        if (colors[i + 2] !== c.b) return false;
+        if (floor.colors[i + 0] !== c.r) return false;
+        if (floor.colors[i + 1] !== c.g) return false;
+        if (floor.colors[i + 2] !== c.b) return false;
       }
 
       return true;
@@ -216,39 +175,39 @@
 
       let index = baseIndex - 4800 - 24;
       for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
-        colors[i + 0] = c.r;
-        colors[i + 1] = c.g;
-        colors[i + 2] = c.b;
-        colors[i + 3] = a;
+        floor.colors[i + 0] = c.r;
+        floor.colors[i + 1] = c.g;
+        floor.colors[i + 2] = c.b;
+        floor.colors[i + 3] = a;
       }
 
       index = baseIndex -2400 - 24 - 24;
       for (let i = index; i < index + ((6 * 4) * 4); i += 4) {
-        colors[i + 0] = c.r;
-        colors[i + 1] = c.g;
-        colors[i + 2] = c.b;
-        colors[i + 3] = a;
+        floor.colors[i + 0] = c.r;
+        floor.colors[i + 1] = c.g;
+        floor.colors[i + 2] = c.b;
+        floor.colors[i + 3] = a;
       }
 
       index = baseIndex - 24 - 24;
       for (let i = index; i < index + ((6 * 4) * 4); i += 4) {
-        colors[i + 0] = c.r;
-        colors[i + 1] = c.g;
-        colors[i + 2] = c.b;
-        colors[i + 3] = a;
+        floor.colors[i + 0] = c.r;
+        floor.colors[i + 1] = c.g;
+        floor.colors[i + 2] = c.b;
+        floor.colors[i + 3] = a;
       }
 
       index = baseIndex + 2400 - 24;
       for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
-        colors[i + 0] = c.r;
-        colors[i + 1] = c.g;
-        colors[i + 2] = c.b;
-        colors[i + 3] = a;
+        floor.colors[i + 0] = c.r;
+        floor.colors[i + 1] = c.g;
+        floor.colors[i + 2] = c.b;
+        floor.colors[i + 3] = a;
       }
 
 
-      floor.geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 4));
-      floor.geometry.colorsNeedUpdate = true;
+      floor.mesh.geometry.setAttribute('color', new THREE.Float32BufferAttribute(floor.colors, 4));
+      floor.mesh.geometry.colorsNeedUpdate = true;
     }
 
 
@@ -467,10 +426,10 @@
         player.mesh.position.y -= 0.98;
       }
 
-      player.bb.copy(player.mesh.geometry.boundingBox).applyMatrix4(player.mesh.matrixWorld); // 動くたびにバウンディングボックスをコピー
+      player.setBounds();
       cubes.forEach(cube => { // 一つ一つのキューブを取り出して，
-        // Step.6 衝突の検知 cube.collision(player.bb);
-        const result = cube.collision(player.bb, player.color);
+        // Step.6 衝突の検知 cube.collision(player);
+        const result = cube.collision(player);
 
         if (result.isHit) {
           const padList = navigator.getGamepads();
@@ -507,15 +466,14 @@
         }
         ball.move();
         cubes.forEach(cube => {
-          if(ball.collision(cube.boundingBox, cube)) {
+          if(ball.collision(cube)) {
             cube.mesh.material.color.setHex(ball.color.ink);
             this.isNotHit = false;
             splash(cube.mesh.position, ball.color.splash);
           }
         });
 
-        // 床も塗ろう
-        if(ball.collision(floor.bb)) {
+        if(ball.collision(floor)) {
           splash(ball.mesh.position, ball.color.splash);
         }
         
@@ -603,7 +561,7 @@
       const intersects = raycaster.intersectObjects(scene.children);
 
       if(intersects.length > 0){
-        console.log(intersects[0].object === floor)
+        console.log(intersects[0].object === floor.mesh)
         
         const point = intersects[0].point;
       
@@ -613,7 +571,7 @@
 
         // TODO: x + 50とか避けて変数に。
         if(cubesFlag[z + 50][x + 50]) {
-          if(intersects[0].object === floor) return;
+          if(intersects[0].object === floor.mesh) return;
           // meshがあったら削除
           meshClear(intersects[0].object, x + 50, z + 50);
           return;

@@ -34,10 +34,22 @@ class Bear {
   }
 }
 
-class Player {
+class SplaObject {
+  constructor(color) {
+    this.color = color;
+  }
+  setBounds() {
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+  }
+}
+
+class Player extends SplaObject {
   constructor(position, playerColor = color.player1) {
+    super(playerColor);
+
     this.position = position;
-    this.color = playerColor;
     this.mesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.8, 0.8, 1.6), // 形状の指定
       new THREE.MeshBasicMaterial({ color: color.body }) // ポリゴンメッシュ（略してメッシュ）。多角形の面の集合体
@@ -51,10 +63,11 @@ class Player {
     this.boundingBox.setFromObject(this.mesh);
   }
 }
-class Block {
+class Block extends SplaObject {
   constructor(position) {
+    super(color.wall);
+
     this.position = position;
-    this.color = color.wall;
     this.mesh = new THREE.Mesh(
       new THREE.BoxGeometry(1, 2, 1),
       new THREE.MeshBasicMaterial({ color: this.color.ink })
@@ -68,13 +81,13 @@ class Block {
     this.boundingBox.setFromObject(this.mesh);
   }
 
-  collision(playerBB, playerInkColor) {
+  collision(player) {
     this.boundingBox
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
     if (
-      this.boundingBox.intersectsBox(playerBB) &&
-      this.color !== playerInkColor
+      this.boundingBox.intersectsBox(player.boundingBox) &&
+      this.color !== player.color
     ) {
       this.mesh.material.color.setHex(color.danger);
       return { isHit: true, color: this.color };
@@ -90,12 +103,13 @@ class Block {
   }
 }
 
-class Ball {
+class Ball extends SplaObject {
   constructor(player) {
+    super(player.color);
+
     const position = player.mesh.position;
     this.isNotHit = true;
     this.life = 100;
-    this.color = player.color;
 
     this.mesh = new THREE.Mesh(
       new THREE.SphereGeometry(0.3, 32, 16),
@@ -123,33 +137,68 @@ class Ball {
     if (this.life < 0) this.isNotHit = false;
   }
 
-  // TODO: floorやplayerをクラス化したら，こっちの考え方でいける
-  // collision(cube) {
-  //   const cubeBB = cube.boundingBox;
-  //   this.boundingBox
-  //     .copy(this.mesh.geometry.boundingBox)
-  //     .applyMatrix4(this.mesh.matrixWorld);
-  //   if (this.boundingBox.intersectsBox(cubeBB)) {
-  //     cube.color = this.color;
-  //     this.isNotHit = false;
-  //     return true;
-  //   } else {
-  //     return false;
-  //   }
-  // }
-
-  collision(cubeBB, obj) {
+  collision(obj) {
     this.boundingBox
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
-    if (this.boundingBox.intersectsBox(cubeBB)) {
-      if (obj) {
-        obj.color = this.color;
-      }
+    if (this.boundingBox.intersectsBox(obj.boundingBox)) {
+      obj.color = this.color;
       this.isNotHit = false;
       return true;
     } else {
       return false;
     }
+  }
+}
+
+class Floor extends SplaObject {
+  constructor(color) {
+    super(color);
+
+    this.colors = [];
+    const floorGeometry = new THREE.PlaneGeometry(
+      100,
+      100,
+      100,
+      100
+    ).toNonIndexed();
+    const positionAttribute = floorGeometry.getAttribute("position");
+    const floorColor = new THREE.Color();
+    for (let i = 0; i < positionAttribute.count; i += 6) {
+      floorColor.setHex(0xdddddd);
+      const alpha = 1;
+
+      this.colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      this.colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      this.colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+
+      this.colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      this.colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+      this.colors.push(floorColor.r, floorColor.g, floorColor.b, alpha);
+    }
+    floorGeometry.setAttribute(
+      "color",
+      new THREE.Float32BufferAttribute(this.colors, 4)
+    );
+    const floorMaterial = new THREE.MeshBasicMaterial({
+      vertexColors: true,
+      transparent: true,
+      side: THREE.DoubleSide,
+    });
+
+    this.mesh = new THREE.Mesh(floorGeometry, floorMaterial);
+    this.mesh.receiveShadow = true;
+    this.mesh.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
+
+    // 接触判定用BoundingBox
+    this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    this.boundingBox.setFromObject(this.mesh);
+  }
+
+  getBounds() {
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+    return this.boundingBox;
   }
 }

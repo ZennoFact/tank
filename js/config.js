@@ -43,6 +43,7 @@ const weaponMode = {
   sub1: 1,
 };
 
+// TODO: 全てinkとsplashに分けるか要検討
 const color = {
   body: 0x555749,
   wall: {
