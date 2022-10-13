@@ -299,8 +299,7 @@
             }
           } else if(!lTriger && !isDiveMode) {
             interval.lTriger--;
-            player.mesh.position.y = floorY;
-          } else if (!lTriger && isDiveMode) { // TODO: いる？
+          } else if (!lTriger && isDiveMode) { 
             isDiveMode = false;
             document.querySelector('#dive').classList.remove('active');
             interval.lTriger = 30; // 連射速度を制御
