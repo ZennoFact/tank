@@ -325,13 +325,11 @@
             if(interval.lTriger < 0 && isPlayerArea(player)) {
               document.querySelector('#dive').classList.add('active');
               player.mesh.position.y = -0.35;
-              player.mesh.material.color.setHex(player.color.ink);
               isDiveMode = true;
             } else if(isDiveMode && !isPlayerArea(player)) {
               isDiveMode = false;
               document.querySelector('#dive').classList.remove('active');
               document.querySelector('#dive').classList.add('penalty');
-              player.mesh.material.color.setHex(color.body);
               interval.lTriger = 30; // 連射速度を制御
               player.mesh.position.y = floorY;
             }
@@ -343,7 +341,6 @@
             interval.lTriger = 30; // 連射速度を制御
             if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
             player.mesh.position.y = floorY;
-            player.mesh.material.color.setHex(color.body);
           }
 
           if(interval.lTriger === 0) {
@@ -439,7 +436,7 @@
             interval.lb = 30;
 
             colorIndex = (colorIndex + 1) % 4;
-            player.color = colorList[colorIndex];
+            player.changeColor(colorList[colorIndex]);
             showColor(player.color.ink)
           }
         }
@@ -479,6 +476,7 @@
         // Step.6 衝突の検知 cube.collision(player);
         const result = cube.collision(player);
 
+        // TODO: ぶつかったときに色が塗られていたら，隣の壁も塗りなおせないか(もちろんその壁の地面も）
         if (result.isHit) {
           const padList = navigator.getGamepads();
           if (padList[0]) {
@@ -537,10 +535,10 @@
       ps.forEach((p, i) => {
         p.move();
 
-        if(p.life === -5) {
+        if(p.life === 0) {
           ps.splice(i, 1);
           scene.remove(p.mesh);
-          splash(p.mesh.position, 0xff0000, "super")
+          splash(p.mesh.position, player.color.splash, "super")
           p.mesh.children.forEach(mesh => {
             mesh.material.dispose();
             mesh.geometry.dispose();

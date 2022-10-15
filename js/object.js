@@ -12,12 +12,22 @@ class SplaObject {
 class Player extends SplaObject {
   constructor(position, playerColor = color.player1) {
     super(playerColor);
+    this.bodyColor = color.body;
 
     this.position = position;
+    this.material = [
+      new THREE.MeshBasicMaterial({ color: color.body }),
+      new THREE.MeshBasicMaterial({ color: color.body }),
+      new THREE.MeshBasicMaterial({ color: playerColor.ink }),
+      new THREE.MeshBasicMaterial({ color: color.body }),
+      new THREE.MeshBasicMaterial({ color: color.body }),
+      new THREE.MeshBasicMaterial({ color: color.body }),
+    ];
     this.mesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.8, 0.8, 1.6), // 形状の指定
-      new THREE.MeshBasicMaterial({ color: color.body }) // ポリゴンメッシュ（略してメッシュ）。多角形の面の集合体
+      this.material // ポリゴンメッシュ（略してメッシュ）。多角形の面の集合体
     );
+
     this.mesh.position.set(position.x, position.y, position.z);
     this.mesh.castShadow = true;
     this.mesh.receiveShadow = true;
@@ -25,6 +35,21 @@ class Player extends SplaObject {
     // 接触判定用BoundingBox
     this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
     this.boundingBox.setFromObject(this.mesh);
+  }
+
+  changeColor(color) {
+    // TODO: 1面だけ色を変える工夫を検討
+    if (color) this.color = color;
+    this.material = [
+      new THREE.MeshBasicMaterial({ color: this.bodyColor }),
+      new THREE.MeshBasicMaterial({ color: this.bodyColor }),
+      new THREE.MeshBasicMaterial({ color: this.color.ink }),
+      new THREE.MeshBasicMaterial({ color: this.bodyColor }),
+      new THREE.MeshBasicMaterial({ color: this.bodyColor }),
+      new THREE.MeshBasicMaterial({ color: this.bodyColor }),
+    ];
+    this.mesh.material = this.material;
+    // this.mesh.geometry.colorsNeedUpdate = true;
   }
 }
 class Block extends SplaObject {
@@ -172,7 +197,7 @@ class Pumpkin extends SplaObject {
     super(player.color);
 
     const position = player.mesh.position;
-    this.life = 100;
+    this.life = 50;
 
     this.mesh = seed.clone();
     this.mesh.position.set(position.x, position.y, position.z);
@@ -185,22 +210,10 @@ class Pumpkin extends SplaObject {
   move() {
     // TODO: おもろい動きの検討
     // this.mesh.rotation.z += 0.05;
-    if (this.life < 0) this.bomb();
-    else {
-      this.mesh.scale.x += 0.01;
-      this.mesh.scale.y += 0.01;
-      this.mesh.scale.z += 0.01;
-      this.life--;
-    }
-  }
-
-  bomb() {
-    if (this.life >= -5) {
-      this.mesh.scale.x -= 0.2;
-      this.mesh.scale.y -= 0.2;
-      this.mesh.scale.z -= 0.2;
-      this.life--;
-    }
+    this.mesh.scale.x += 0.02;
+    this.mesh.scale.y += 0.02;
+    this.mesh.scale.z += 0.02;
+    this.life--;
   }
 
   collision(obj) {
