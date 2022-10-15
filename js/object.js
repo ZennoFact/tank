@@ -172,7 +172,6 @@ class Pumpkin extends SplaObject {
     super(player.color);
 
     const position = player.mesh.position;
-    this.isNotHit = true;
     this.life = 100;
 
     this.mesh = seed.clone();
@@ -185,13 +184,23 @@ class Pumpkin extends SplaObject {
 
   move() {
     // TODO: おもろい動きの検討
-    this.mesh.position.y += 0.1;
-    this.mesh.rotation.z += 0.05;
-    this.mesh.scale.x += 0.001;
-    this.mesh.scale.y += 0.001;
-    this.mesh.scale.z += 0.001;
-    this.life--;
-    if (this.life < 0) this.isNotHit = false; // 時間で爆発？
+    // this.mesh.rotation.z += 0.05;
+    if (this.life < 0) this.bomb();
+    else {
+      this.mesh.scale.x += 0.01;
+      this.mesh.scale.y += 0.01;
+      this.mesh.scale.z += 0.01;
+      this.life--;
+    }
+  }
+
+  bomb() {
+    if (this.life >= -5) {
+      this.mesh.scale.x -= 0.2;
+      this.mesh.scale.y -= 0.2;
+      this.mesh.scale.z -= 0.2;
+      this.life--;
+    }
   }
 
   collision(obj) {

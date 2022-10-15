@@ -48,7 +48,7 @@
     scene.background = new THREE.Color( 0x000000 );
     const floorY = 0.5;
 
-    // 今
+    // TODO: Lineの削除（多分もう使わないからどっかに分離しておきたい）
     const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
     let balls = [];
     let ps = [];
@@ -58,7 +58,7 @@
     const line = new THREE.Line(lineGeometry, lineMaterial);
     scene.add(line);
 
-
+    // TODO: かぼちゃを作ってから全部動かしたほうが安全
     let pumpkinSeed;
     new THREE.MTLLoader()
       .setPath('./assets/texture/')
@@ -209,43 +209,37 @@
       return true;
     }
 
-    function splash(position, inkColor = color.floor) {
+    function splash(position, inkColor = color.floor, command = "nomal") {
       const c = new THREE.Color();
       c.setHex(inkColor);
       const a = 1;
       const baseIndex = ((Math.floor(position.x) + 50) * 24) + (((Math.floor(position.z)) + 50) * 2400);
 
-
-      let index = baseIndex - 4800 - 24;
-      for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
-        floor.colors[i + 0] = c.r;
-        floor.colors[i + 1] = c.g;
-        floor.colors[i + 2] = c.b;
-        floor.colors[i + 3] = a;
+      let range = 2;
+      if (command === "super") range = 10;
+      let baseSize = 2400;
+      let size = range;
+      let index = 0;
+      for(let diff = 24; size !== 0; diff += 24) {
+        index = baseIndex - baseSize * size - diff;
+        for (let i = index; i < index + (diff * 2); i += 4) {
+          floor.colors[i + 0] = c.r;
+          floor.colors[i + 1] = c.g;
+          floor.colors[i + 2] = c.b;
+          floor.colors[i + 3] = a;
+        }
+        size--;
       }
 
-      index = baseIndex -2400 - 24 - 24;
-      for (let i = index; i < index + ((6 * 4) * 4); i += 4) {
-        floor.colors[i + 0] = c.r;
-        floor.colors[i + 1] = c.g;
-        floor.colors[i + 2] = c.b;
-        floor.colors[i + 3] = a;
-      }
-
-      index = baseIndex - 24 - 24;
-      for (let i = index; i < index + ((6 * 4) * 4); i += 4) {
-        floor.colors[i + 0] = c.r;
-        floor.colors[i + 1] = c.g;
-        floor.colors[i + 2] = c.b;
-        floor.colors[i + 3] = a;
-      }
-
-      index = baseIndex + 2400 - 24;
-      for (let i = index; i < index + ((6 * 4) * 2); i += 4) {
-        floor.colors[i + 0] = c.r;
-        floor.colors[i + 1] = c.g;
-        floor.colors[i + 2] = c.b;
-        floor.colors[i + 3] = a;
+      for(let diff = 24 * range; size !== 10; diff -= 24) {
+        index = baseIndex + baseSize * size - diff;
+        for (let i = index; i < index + (diff * 2); i += 4) {
+          floor.colors[i + 0] = c.r;
+          floor.colors[i + 1] = c.g;
+          floor.colors[i + 2] = c.b;
+          floor.colors[i + 3] = a;
+        }
+        size++;
       }
 
 
@@ -265,6 +259,7 @@
     const interval = {
       triger: 0,
       lTriger: 0,
+      b: 0,
       x: 0,
       lb: 0,
       rs: 0,
@@ -277,8 +272,9 @@
       const padList = navigator.getGamepads();
       if(padList[0]) {
         const pad = padList[0];
+        const bBtn = pad.buttons[config.button.b].pressed;
         const xBtn = pad.buttons[config.button.x].pressed;
-        const yBtn = pad.buttons[config.button.y].pressed;
+        // const yBtn = pad.buttons[config.button.y].pressed;
         const lBtn = pad.buttons[config.button.lb].pressed;
         const rbBtn = pad.buttons[config.button.rb].pressed;
         const backBtn = pad.buttons[config.button.back].pressed;
@@ -448,6 +444,15 @@
           }
         }
 
+        // ハロウィン仕様
+        interval.b--;
+        if(bBtn) {
+          if (interval.b < 0 && pumpkinSeed) {
+            interval.b = 30;
+            pumpkinBomb(player, pumpkinSeed);
+          }
+        }
+
 
         if(startBtn) {
           alert('マップを保存しました！');
@@ -529,8 +534,18 @@
       });
       balls = balls.filter(b => b.isNotHit);
 
-      ps.forEach(p => {
+      ps.forEach((p, i) => {
         p.move();
+
+        if(p.life === -5) {
+          ps.splice(i, 1);
+          scene.remove(p.mesh);
+          splash(p.mesh.position, 0xff0000, "super")
+          p.mesh.children.forEach(mesh => {
+            mesh.material.dispose();
+            mesh.geometry.dispose();
+          });
+        }
       });
 
       renderer.render( scene, camera );
@@ -545,16 +560,15 @@
       scene.add( ball.mesh );
       balls.push(ball);
       // player.translateZ(0.3); // 反動で後退（酔いそうなので削除）
-
-      // TODO: かぼちゃの生成
-      if (pumpkinSeed) {
-        const pumpkin = new Pumpkin(player, pumpkinSeed);
-        scene.add(pumpkin.mesh);
-        ps.push(pumpkin);
-      }
     }
     function subWeapon1() {
       splash(player.mesh.position, player.color.splash);
+    }
+
+    function pumpkinBomb(player, seed) {
+      const pumpkin = new Pumpkin(player, seed);
+      scene.add(pumpkin.mesh);
+      ps.push(pumpkin);
     }
 
     function setCamera(state) {
