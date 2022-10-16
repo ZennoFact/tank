@@ -123,4 +123,21 @@
   left: 20px;
   width: 230px;
 }
+
+#pumpkin {
+  bottom: 20px;
+  width: 100%;
+  position: absolute;
+  padding: 10px;
+  text-align: center;
+}
+
+#pumpkin.charging {
+  display: none;
+}
+
+#pumpkin img{
+  width: 100px;
+  height: 100px;
+}
       

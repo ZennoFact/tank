@@ -8,6 +8,9 @@
   <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
+  <div id="pumpkin" class="charging">
+    <img src="./assets/image/pumpkin.png" alt="かぼちゃ">
+  </div>
   <template id="uiParts">
     <div id="rTriger" class="ui">
       <h2>Main</h2>
@@ -47,6 +50,11 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x000000 );
     const floorY = 0.5;
+    let canBomb = true;
+    let bombTimer = 0;
+    
+    document.querySelector('#pumpkin').classList.remove('charging');
+
 
     // TODO: Lineの削除（多分もう使わないからどっかに分離しておきたい）
     const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
@@ -209,14 +217,18 @@
       return true;
     }
 
-    function splash(position, inkColor = color.floor, command = "nomal") {
+    function splash(position, inkColor = color.floor, power = 2) {
       const c = new THREE.Color();
       c.setHex(inkColor);
       const a = 1;
       const baseIndex = ((Math.floor(position.x) + 50) * 24) + (((Math.floor(position.z)) + 50) * 2400);
-
-      let range = 2;
-      if (command === "super") range = 10;
+      
+      wallPosition = []
+      const x = Math.floor(position.x) + 50;
+      const z = Math.floor(position.z) + 50;
+      
+      let range = power;
+      
       let baseSize = 2400;
       let size = range;
       let index = 0;
@@ -227,7 +239,7 @@
           floor.colors[i + 1] = c.g;
           floor.colors[i + 2] = c.b;
           floor.colors[i + 3] = a;
-        }
+        }        
         size--;
       }
 
@@ -239,12 +251,13 @@
           floor.colors[i + 2] = c.b;
           floor.colors[i + 3] = a;
         }
+
         size++;
       }
-
-
       floor.mesh.geometry.setAttribute('color', new THREE.Float32BufferAttribute(floor.colors, 4));
       floor.mesh.geometry.colorsNeedUpdate = true;
+
+      // return wallPosition;
     }
 
 
@@ -259,7 +272,6 @@
     const interval = {
       triger: 0,
       lTriger: 0,
-      b: 0,
       x: 0,
       lb: 0,
       rs: 0,
@@ -442,10 +454,16 @@
         }
 
         // ハロウィン仕様
-        interval.b--;
-        if(bBtn) {
-          if (interval.b < 0 && pumpkinSeed) {
-            interval.b = 30;
+        bombTimer--;
+        if(bombTimer === 0) {
+          canBomb = true;
+          document.querySelector('#pumpkin').classList.remove('charging');
+        }
+        if(bBtn && canBomb) {
+          if (pumpkinSeed) {
+            canBomb = false;
+            bombTimer = 500;
+            document.querySelector('#pumpkin').classList.add('charging');
             pumpkinBomb(player, pumpkinSeed);
           }
         }
@@ -476,7 +494,6 @@
         // Step.6 衝突の検知 cube.collision(player);
         const result = cube.collision(player);
 
-        // TODO: ぶつかったときに色が塗られていたら，隣の壁も塗りなおせないか(もちろんその壁の地面も）
         if (result.isHit) {
           const padList = navigator.getGamepads();
           if (padList[0]) {
@@ -487,13 +504,20 @@
               strongMagnitude: 1.0,
             });
           }
-
+          
           // ぶつかったらしばらく玉が撃てないように
           interval.triger = 30;
           interval.rb = 30;
-
+          
           if (result.color !== color.wall) {
             splash(cube.position, result.color.splash);
+
+            // TODO: ぶつかったときに色が塗られていたら，隣の壁も塗りなおせないか(もちろんその壁の地面も）
+            // const hitWall = splash(cube.position, result.color.splash);
+            // console.log(hitWall)
+            // hitWall.forEach(pos => {
+            //   cubes[pos.z][pos.x] = cube.color.ink;
+            // });
           }
         }
       })
@@ -538,7 +562,7 @@
         if(p.life === 0) {
           ps.splice(i, 1);
           scene.remove(p.mesh);
-          splash(p.mesh.position, player.color.splash, "super")
+          splash(p.mesh.position, player.color.splash, 10)
           p.mesh.children.forEach(mesh => {
             mesh.material.dispose();
             mesh.geometry.dispose();
