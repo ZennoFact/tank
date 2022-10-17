@@ -76,19 +76,6 @@
           .setPath('./assets/object/')
           .setMaterials(materials)
           .load('pumpkin.obj',function (object){
-            /* TODO: 最適化必要 */
-            // const icosahedronLine = new THREE.LineSegments(
-            //   new THREE.EdgesGeometry(object.children[1].geometry), // 線を生成する元になるgeometry
-            //   new THREE.LineBasicMaterial({ color: 0xd92a03 }) // 線のmaterial
-            // );
-            // icosahedronLine.scale.x = 0.03;
-            // icosahedronLine.scale.y = 0.03;
-            // icosahedronLine.scale.z = 0.03;
-            // icosahedronLine.position.y = 2;
-            // icosahedronLine.rotation.x = -90;
-            // object.children.push(icosahedronLine);
-            /* TODO: 最適化必要 ここまで */
-            
             object.castShadow = true;
             object.receiveShadow = true;
             object.position.y = player.position.y;
@@ -421,6 +408,7 @@
           }
         }
 
+        // TODO: エディットモード用の操作を追加
         // モード変更 EDIT
         interval.x--;
         if(xBtn) {
@@ -436,6 +424,7 @@
               camera.position.y = cameraEditHeight;
               camera.position.x = 0;
               camera.position.z = 0;
+              camera.rotation.y = 0;
               camera.lookAt(0, 0, 0);
             } 
           }
@@ -600,6 +589,7 @@
           title.innerHTML = "Bird's Eye";
           camera.position.y = cameraBaseHeight;
           camera.rotation.y = 0;
+          camera.position.x = player.mesh.position.x;
           camera.position.z = player.mesh.position.z;
           camera.lookAt(player.mesh.position.x, player.mesh.position.y, player.mesh.position.z);
           break;

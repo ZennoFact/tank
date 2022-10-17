@@ -23,6 +23,8 @@
   font-weight: bold;
   background-color: #eee;
   text-align: center;
+  user-select: none;
+  pointer-events: none;
 }
 
 #rTriger {
@@ -130,6 +132,8 @@
   position: absolute;
   padding: 10px;
   text-align: center;
+  user-select: none;
+  pointer-events: none;
 }
 
 #pumpkin.charging {
