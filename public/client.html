@@ -67,6 +67,8 @@
     const line = new THREE.Line(lineGeometry, lineMaterial);
     scene.add(line);
 
+    let objects = [];
+
     // TODO: かぼちゃを作ってから全部動かしたほうが安全
     let pumpkinSeed;
     new THREE.MTLLoader()
@@ -156,12 +158,13 @@
 
     mapRenderer.domElement.style.width = "250px"; // マップを表示するパーツなのでちっさくしましょう
     mapRenderer.domElement.style.height = "250px";
-
+    
     // マップを表示するためのカメラも作って
     const mapCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
     mapCamera.position.set(0, 30, 0);
     mapCamera.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(mapCamera); // シーンに登録しよう
+    
 
     // player
     colorIndex = 0;
@@ -249,6 +252,24 @@
     }
 
 
+    // TODO: 適切な記載場所を検討
+    /* socket.io */
+    var socket = io();
+    socket.on("login", data => {
+      socket.id = data.id;
+      objects = data.objects;
+
+      socket.emit('onStage', {
+        color: player.color,
+        position: player.mesh.position,
+        rotation: player.mesh.rotation
+      });
+      socket.on("appear", (data) => {
+        objects[data.id] = data.object;
+      });
+    });
+
+
     // 動いた時に線を描きたい場合は呼び出す関数
     function drawLine() {
       points.push(new THREE.Vector3(player.mesh.position.x, player.mesh.position.y, player.mesh.position.z));
@@ -269,6 +290,7 @@
     function animate() {
       requestAnimationFrame( animate );
 
+      let clone;
       const padList = navigator.getGamepads();
       if(padList[0]) {
         const pad = padList[0];
@@ -288,6 +310,7 @@
 
         // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
         // 移動
+
         if(!isEditMode) {
           const rt = document.querySelector('#rTriger')
           // ボールを投げる
@@ -318,20 +341,23 @@
               document.querySelector('#rButton').classList.remove('active');
             }
           }
+
+          // TODO: ここで次の位置を決定するmeshを作成
+          clone = player.mesh.clone();
         
           // 潜行
           if(lTriger) {
             console.log(isPlayerArea(player))
             if(interval.lTriger < 0 && isPlayerArea(player)) {
               document.querySelector('#dive').classList.add('active');
-              player.mesh.position.y = -0.35;
+              clone.position.y = -0.35;
               isDiveMode = true;
             } else if(isDiveMode && !isPlayerArea(player)) {
               isDiveMode = false;
               document.querySelector('#dive').classList.remove('active');
               document.querySelector('#dive').classList.add('penalty');
               interval.lTriger = 30; // 連射速度を制御
-              player.mesh.position.y = floorY;
+              clone.position.y = floorY;
             }
           } else if(!lTriger && !isDiveMode) {
             interval.lTriger--;
@@ -340,7 +366,7 @@
             document.querySelector('#dive').classList.remove('active');
             interval.lTriger = 30; // 連射速度を制御
             if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
-            player.mesh.position.y = floorY;
+            clone.position.y = floorY;
           }
 
           if(interval.lTriger === 0) {
@@ -353,12 +379,12 @@
           if(upDown < -0.3 ) {
             let speed = 0.1 * upDown;
             if (isDiveMode) speed *= 2;
-            player.mesh.translateZ(speed);
+            clone.translateZ(speed);
             document.querySelector('#lStick').classList.add("active");
           } else if(upDown > 0.3) {
             let speed = 0.1 * upDown;
             if (isDiveMode) speed *= 2;
-            player.mesh.translateZ(speed);
+            clone.translateZ(speed);
             document.querySelector('#lStick').classList.add("active");
           } else {
             document.querySelector('#lStick').classList.remove("active");
@@ -367,11 +393,12 @@
           if(LR < -0.3 || 0.3 < LR) {
             document.querySelector('#rStick').classList.add("active");
             const rad = 0.02 * LR;
-            player.mesh.rotation.y -= rad;
+            clone.rotation.y -= rad;
           } else {
             document.querySelector('#rStick').classList.remove("active");
           }
-
+          
+          // TODO: ここもcloneに変えるべき？
           switch(currentState) {
             case viewMode.birdsEye:
               camera.position.x = player.mesh.position.x;
@@ -560,12 +587,32 @@
         }
       });
 
-      renderer.render( scene, camera );
-      mapRenderer.render( scene, mapCamera);
+      // renderer.render( scene, camera );
+      // mapRenderer.render( scene, mapCamera);
+
+      
+      // ここで位置情報をサーバへ送信
+      if(clone) {
+        let newData = {position: clone.position, rotation: clone.rotation.y};
+        if(socket.id) socket.emit("move", newData);
+      }
+
     }
     
     // 一瞬一瞬，再描画し続ける
     animate();
+
+    socket.on("move", data => {
+      for(const [key, value] of Object.entries(data)) {
+        if(key === socket.id) {
+          console.log("=================")
+          player.mesh.position.set(value.position.x, value.position.y, value.position.z);
+          player.mesh.rotation.y = value.rotation;
+        }
+      }
+      renderer.render( scene, camera );
+      mapRenderer.render( scene, mapCamera);
+    });
   
     function shoot() {
       const ball = new Ball(player); // オリジナルのCubeを作る呪文
@@ -597,11 +644,7 @@
         case viewMode.thirdPerson:
           title.innerHTML = "Third Person";
           camera.rotation.y = player.mesh.rotation.y;
-          
-          console.log(player.mesh.rotation.y);
           const rad = -player.mesh.rotation.y + (90 * Math.PI / 180);
-          console.log(player.mesh.rotation.y, rad);
-
           camera.position.y = player.mesh.position.y + 2;
           camera.position.x = player.mesh.position.x + Math.abs(cameraDistance * Math.cos(rad));
           camera.position.z = player.mesh.position.z + Math.abs(cameraDistance * Math.sin(rad));
@@ -642,8 +685,6 @@
       const intersects = raycaster.intersectObjects(scene.children);
 
       if(intersects.length > 0){
-        console.log(intersects[0].object === floor.mesh)
-        
         const point = intersects[0].point;
       
         // Grid上に置くため，切り捨てしておく
