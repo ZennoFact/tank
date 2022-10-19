@@ -20,10 +20,10 @@ io.on("connection", (socket) => {
 
   socket.on("onStage", (player) => {
     objects[socket.id] = player;
-    socket.broadcast.emit("appear", { id: socket.id, object: player });
+    // socket.broadcast.emit("appear", { id: socket.id, object: player });
+    io.emit("appear", { id: socket.id, object: player });
   });
   socket.on("move", (data) => {
-    console.log(objects[socket.id].position, data.position);
     objects[socket.id].rotation = data.rotation;
     objects[socket.id].position = data.position;
   });
@@ -32,6 +32,7 @@ io.on("connection", (socket) => {
   });
 });
 
+// TODO: 床を塗った情報はどうする？あと玉，壁の共有はCSVかなんかで実現？
 function timer() {
   // TODO: ここで，一斉にデータ送信
   io.emit("move", objects);
