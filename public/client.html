@@ -8,9 +8,6 @@
   <link rel="stylesheet" href="./assets/css/style.css">
 </head>
 <body>
-  <div id="pumpkin" class="charging">
-    <img src="./assets/image/pumpkin.png" alt="かぼちゃ">
-  </div>
   <template id="uiParts">
     <div id="rTriger" class="ui">
       <h2>Main</h2>
@@ -53,9 +50,6 @@
     const floorY = 0.5;
     let canBomb = true;
     let bombTimer = 0;
-    
-    // document.querySelector('#pumpkin').classList.remove('charging');
-
 
     // TODO: Lineの削除（多分もう使わないからどっかに分離しておきたい）
     const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
@@ -279,6 +273,18 @@
         scene.add(player.mesh);
         objects.push(player);
       });
+      socket.on("weapon", (data) => {
+        const p = objects.filter(obj => obj.id === data.id)[0];
+        if (data.arm === "main") {
+          // const ball = new Ball(player);
+          const ball = new Ball(p);
+          scene.add( ball.mesh );
+          balls.push(ball);
+        } else if (data.arm === "sub1") {
+          
+          splash(p.mesh.position, p.color.splash);
+        }
+      });
 
       // ループの開始
       processing();
@@ -305,7 +311,7 @@
     function processing() {
       requestAnimationFrame( processing );
 
-      let clone;
+      let clone = player.mesh.clone();
       let oldInk = player.color.ink;
       // ゲームパッドが使えるときの処理
       const padList = navigator.getGamepads();
@@ -353,13 +359,13 @@
       }
 
       // TODO: ここで次の位置を決定するmeshを作成
-      clone = player.mesh.clone();
+      // clone = player.mesh.clone();
     
       // 潜行
       if(pressed.lTriger) {
         if(interval.lTriger < 0 && isPlayerArea(player)) {
           document.querySelector('#dive').classList.add('active');
-          clone.position.y = -0.35;
+          player.mesh.position.y = -0.35;
           isDiveMode = true;
           console.log("dive start")
         } else if(isDiveMode && !isPlayerArea(player)) {
@@ -367,7 +373,7 @@
           document.querySelector('#dive').classList.remove('active');
           document.querySelector('#dive').classList.add('penalty');
           interval.lTriger = 30; // 連射速度を制御
-          clone.position.y = floorY;
+          player.mesh.position.y = floorY;
           
           console.log("dive over")
         }
@@ -378,7 +384,7 @@
         document.querySelector('#dive').classList.remove('active');
         interval.lTriger = 30; // 連射速度を制御
         if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
-        clone.position.y = floorY;
+        player.mesh.position.y = floorY;
         console.log('dive stop')
       }
 
@@ -392,12 +398,12 @@
       if(tilted.lStickV < -0.3 ) {
         let speed = 0.1 * tilted.lStickV;
         if (isDiveMode) speed *= 2;
-        clone.translateZ(speed);
+        player.move(speed);
         document.querySelector('#lStick').classList.add("active");
       } else if(tilted.lStickV > 0.3) {
         let speed = 0.1 * tilted.lStickV;
         if (isDiveMode) speed *= 2;
-        clone.translateZ(speed);
+        player.move(speed);
         document.querySelector('#lStick').classList.add("active");
       } else {
         document.querySelector('#lStick').classList.remove("active");
@@ -405,10 +411,7 @@
       
       if(tilted.rStickH < -0.3 || 0.3 < tilted.rStickH) {
         document.querySelector('#rStick').classList.add("active");
-        const rad = 0.02 * tilted.rStickH;
-        // TODO: なぜ回転しなくなった？
-        clone.rotation.y -= rad;
-        // console.log("p:" + clone.rotation.y)
+        player.roll(tilted.rStickH);
       } else {
         document.querySelector('#rStick').classList.remove("active");
       }
@@ -490,6 +493,23 @@
           }
         });
 
+        // 弾とプレイヤーの接触
+        objects.forEach(obj => {
+          if(obj.collision(ball)) {
+            console.log(obj)
+            // TODO: ここ，何とかして整頓
+            socket.emit("changeColor", {id: obj.id, color: obj.color})
+            ball.collision(obj)
+            splash(obj.mesh.position, ball.color.splash);
+          }
+        });
+        if(player.collision(ball)) {
+          // TODO: L-Button押したときの色の変化も合わせる
+          ball.collision(player)
+          splash(player.mesh.position, ball.color.splash);
+        }
+
+
         if(ball.collision(floor)) {
           splash(ball.mesh.position, ball.color.splash);
         }
@@ -519,8 +539,7 @@
 
       // プレイヤー情報に変更があれば，ここで位置情報をサーバへ送信
       if(!player.equals(clone, oldInk)) {
-        // console.log("n:" + clone.rotation.y)
-        let newData = {color: player.color, position: clone.position, rotation: clone.rotation.y};
+        let newData = {color: player.color, position: player.mesh.position, rotation: player.mesh.rotation.y};
         if(socket.id) socket.emit("move", newData);
       }
     }
@@ -536,8 +555,6 @@
             case viewMode.birdsEye:
               camera.position.x = player.mesh.position.x;
               camera.position.z = player.mesh.position.z;
-              // TODO: 入れるか迷う（なんか酔いそう？）
-              // camera.rotation.z = player.rotation.y;
               break;
               case viewMode.thirdPerson:
               camera.rotation.y = player.mesh.rotation.y
@@ -565,7 +582,6 @@
         if (obj.id !== socket.id) { // プレイヤー以外の場合実行
           const value = data[obj.id];
           if (value) {
-            
             obj.mesh.position.set(value.position.x, value.position.y, value.position.z);
             obj.mesh.rotation.y = value.rotation;
             obj.changeColor(value.color);
@@ -584,16 +600,13 @@
       const ball = new Ball(player); // オリジナルのCubeを作る呪文
       scene.add( ball.mesh );
       balls.push(ball);
+
+      socket.emit('weapon', 'main');
       // player.translateZ(0.3); // 反動で後退（酔いそうなので削除）
     }
     function subWeapon1() {
       splash(player.mesh.position, player.color.splash);
-    }
-
-    function pumpkinBomb(player, seed) {
-      const pumpkin = new Pumpkin(player, seed);
-      scene.add(pumpkin.mesh);
-      ps.push(pumpkin);
+      socket.emit('weapon', 'sub1');
     }
 
     function setCamera(state) {
@@ -673,6 +686,7 @@
           break;
       }
     }, false);
+
     window.addEventListener('keyup', event => {
       switch(event.key) {
         case 'w':

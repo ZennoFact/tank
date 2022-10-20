@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
 let objects = {};
 
 io.on("connection", (socket) => {
-  console.log("a user connected, objects = ", objects);
+  console.log("a user connected");
   socket.emit("login", { id: socket.id, objects: objects });
 
   socket.on("onStage", (player) => {
@@ -27,6 +27,14 @@ io.on("connection", (socket) => {
     objects[socket.id].rotation = data.rotation;
     objects[socket.id].position = data.position;
     objects[socket.id].color = data.color;
+  });
+  socket.on("changeColor", (data) => {
+    console.log(data);
+    objects[data.id].color = data.color;
+  });
+  // おそらくえらいこっちゃになる。
+  socket.on("weapon", (arm) => {
+    socket.broadcast.emit("weapon", { id: socket.id, arm: arm });
   });
   socket.on("disconnect", () => {
     console.log("user disconnected");

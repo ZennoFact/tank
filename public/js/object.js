@@ -7,6 +7,9 @@ class SplaObject {
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
   }
+  is() {
+    return "SplaObject";
+  }
 }
 
 class Player extends SplaObject {
@@ -37,6 +40,32 @@ class Player extends SplaObject {
     this.boundingBox.setFromObject(this.mesh);
   }
 
+  is() {
+    return "Player";
+  }
+
+  collision(obj) {
+    if (obj.is() !== "Ball") return false;
+    if (obj.color.ink === this.color.ink) return false;
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+    if (this.boundingBox.intersectsBox(obj.boundingBox)) {
+      this.changeColor(obj.color);
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  move(speed) {
+    this.mesh.translateZ(speed);
+  }
+
+  roll(radian) {
+    this.mesh.rotation.y -= 0.02 * radian;
+  }
+
   changeColor(color) {
     // TODO: 1面だけ色を変える工夫を検討
     if (color) this.color = color;
@@ -49,7 +78,6 @@ class Player extends SplaObject {
       new THREE.MeshBasicMaterial({ color: this.bodyColor }),
     ];
     this.mesh.material = this.material;
-    // this.mesh.geometry.colorsNeedUpdate = true;
   }
   equals(clone, ink) {
     if (this.mesh.position.x !== clone.position.x) return false;
@@ -78,6 +106,10 @@ class Block extends SplaObject {
     this.boundingBox.setFromObject(this.mesh);
   }
 
+  is() {
+    return "Block";
+  }
+
   collision(player) {
     this.boundingBox
       .copy(this.mesh.geometry.boundingBox)
@@ -97,6 +129,10 @@ class Block extends SplaObject {
 
     // 完全に重なったら？は今のところ考えない
     // if (this.boundingBox.containsBox(playerBB)) {}
+  }
+
+  changeColor(color) {
+    this.color = color;
   }
 }
 
@@ -127,6 +163,10 @@ class Ball extends SplaObject {
     this.boundingBox.setFromObject(this.mesh);
   }
 
+  is() {
+    return "Ball";
+  }
+
   move() {
     this.mesh.translateZ(-0.3);
     this.mesh.position.y += this.life < 25 ? -0.05 : +0.005;
@@ -135,10 +175,16 @@ class Ball extends SplaObject {
   }
 
   collision(obj) {
+    if (obj.is() === "Player") {
+      this.isNotHit = false;
+      return true;
+    }
+
     this.boundingBox
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
     if (this.boundingBox.intersectsBox(obj.boundingBox)) {
+      // obj.changeColor(this.color);
       obj.color = this.color;
       this.isNotHit = false;
       return true;
@@ -192,48 +238,14 @@ class Floor extends SplaObject {
     this.boundingBox.setFromObject(this.mesh);
   }
 
+  is() {
+    return "Floor";
+  }
+
   getBounds() {
     this.boundingBox
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
     return this.boundingBox;
-  }
-}
-
-class Pumpkin extends SplaObject {
-  constructor(player, seed) {
-    super(player.color);
-
-    const position = player.mesh.position;
-    this.life = 50;
-
-    this.mesh = seed.clone();
-    this.mesh.position.set(position.x, position.y, position.z);
-
-    // 接触判定用BoundingBox
-    this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
-    this.boundingBox.setFromObject(this.mesh);
-  }
-
-  move() {
-    // TODO: おもろい動きの検討
-    // this.mesh.rotation.z += 0.05;
-    this.mesh.scale.x += 0.02;
-    this.mesh.scale.y += 0.02;
-    this.mesh.scale.z += 0.02;
-    this.life--;
-  }
-
-  collision(obj) {
-    this.boundingBox
-      .copy(this.mesh.geometry.boundingBox)
-      .applyMatrix4(this.mesh.matrixWorld);
-    if (this.boundingBox.intersectsBox(obj.boundingBox)) {
-      obj.color = this.color;
-      this.isNotHit = false;
-      return true;
-    } else {
-      return false;
-    }
   }
 }
