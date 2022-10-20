@@ -51,6 +51,14 @@ class Player extends SplaObject {
     this.mesh.material = this.material;
     // this.mesh.geometry.colorsNeedUpdate = true;
   }
+  equals(clone, ink) {
+    if (this.mesh.position.x !== clone.position.x) return false;
+    if (this.mesh.position.y !== clone.position.y) return false;
+    if (this.mesh.position.z !== clone.position.z) return false;
+    if (this.mesh.rotation.y !== clone.rotation.y) return false;
+    if (this.color.ink !== ink) return false;
+    return true;
+  }
 }
 class Block extends SplaObject {
   constructor(position) {

@@ -15,17 +15,18 @@ app.get("/", (req, res) => {
 let objects = {};
 
 io.on("connection", (socket) => {
-  console.log("a user connected");
+  console.log("a user connected, objects = ", objects);
   socket.emit("login", { id: socket.id, objects: objects });
 
   socket.on("onStage", (player) => {
     objects[socket.id] = player;
     // socket.broadcast.emit("appear", { id: socket.id, object: player });
-    io.emit("appear", { id: socket.id, object: player });
+    socket.broadcast.emit("appear", { id: socket.id, object: player });
   });
   socket.on("move", (data) => {
     objects[socket.id].rotation = data.rotation;
     objects[socket.id].position = data.position;
+    objects[socket.id].color = data.color;
   });
   socket.on("disconnect", () => {
     console.log("user disconnected");

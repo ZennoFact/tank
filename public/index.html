@@ -368,6 +368,7 @@
             document.querySelector('#rStick').classList.add("active");
             const rad = 0.02 * LR;
             player.mesh.rotation.y -= rad;
+            console.log(player.mesh.rotation.y)
           } else {
             document.querySelector('#rStick').classList.remove("active");
           }
