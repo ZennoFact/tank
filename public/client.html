@@ -578,13 +578,18 @@
       }
     
       // TODO：記述位置，内容ともに要検討
-      objects.forEach(obj => {
+      objects.forEach((obj, i) => {
         if (obj.id !== socket.id) { // プレイヤー以外の場合実行
           const value = data[obj.id];
           if (value) {
             obj.mesh.position.set(value.position.x, value.position.y, value.position.z);
             obj.mesh.rotation.y = value.rotation;
             obj.changeColor(value.color);
+          } else {
+            objects.splice(i, 1);
+            scene.remove(obj.mesh);
+            obj.mesh.material.dispose();
+            obj.mesh.geometry.dispose();
           }
         }
       })

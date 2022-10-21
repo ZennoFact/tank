@@ -37,6 +37,7 @@ io.on("connection", (socket) => {
     socket.broadcast.emit("weapon", { id: socket.id, arm: arm });
   });
   socket.on("disconnect", () => {
+    delete objects[socket.id];
     console.log("user disconnected");
   });
 });
