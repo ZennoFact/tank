@@ -5,11 +5,24 @@ const { userInfo } = require("os");
 const server = http.createServer(app);
 const { Server } = require("socket.io");
 const io = new Server(server);
+const fs = require("fs");
+const csv = require("csv");
 
 app.use(express.static("public"));
 
 app.get("/", (req, res) => {
-  res.sendFile(__dirname + "/public/client.html");
+  fs.createReadStream(__dirname + "/public/assets/map/map1.csv").pipe(
+    csv.parse((err, map) => {
+      fs.readFile(
+        __dirname + "/public/view/client.html",
+        "utf-8",
+        (err, html) => {
+          if (err) throw err; // 例外発生時の処理
+          res.end(html.replace("'%%MAP%%'", JSON.stringify(map)));
+        }
+      );
+    })
+  );
 });
 
 let objects = {};

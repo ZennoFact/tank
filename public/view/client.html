@@ -23,7 +23,7 @@
     </div>
     <div id="color" class="ui">
       <h2>Color: #<span class="color">6464ff</span></h2>
-      <p>L-Button</p>
+      <p><s>L-Button</s></p>
     </div>
     <div id="lStick" class="ui">
       <h2>Move</h2>
@@ -38,28 +38,24 @@
     </div>
   </template>
   <script src="./js/vendor/three.js"></script>
-  <script src="./js/vendor/MTLLoader.js"></script>
-  <script src="./js/vendor/OBJLoader.js"></script>
+  <!-- <script src="./js/vendor/MTLLoader.js"></script>
+  <script src="./js/vendor/OBJLoader.js"></script> -->
   <script src="./js/config.js"></script>
   <script src="./js/object.js"></script>
   <script src="./js/ui.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    const map = '%%MAP%%';
     const scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x000000 );
     const floorY = 0.5;
     let canBomb = true;
     let bombTimer = 0;
 
-    // TODO: Lineの削除（多分もう使わないからどっかに分離しておきたい）
-    const lineMaterial = new THREE.LineBasicMaterial({color: 0x6464ff});
     let balls = [];
     let ps = [];
     let padList = [];
     const points = [];
-    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(lineGeometry, lineMaterial);
-    scene.add(line);
 
     let objects = [];
 
@@ -83,23 +79,16 @@
     }
 
     let cubes = [];
-    const cubesFlag = [];
     for (let i = 0; i <= 100; i++) {
-      const array = [];
       for (let j = 0; j <= 100; j++) {
-        array.push(false);
+        if(map[i][j] === '1') {
+          const cube = new Block({x:j - 50, y: floorY, z: i - 50});
+          cubes.push(cube);
+          scene.add(cube.mesh);
+        }
       }
-      cubesFlag.push(array);
     }
-    if (localStorage.getItem('map')) {
-      const coordinates = JSON.parse(localStorage.getItem('map'));
-      coordinates.forEach(position => {
-        const cube = new Block(position);
-        cubes.push(cube);
-        scene.add(cube.mesh);
-        cubesFlag[position.z + 50][position.x + 50] = true;
-      });
-    }
+
     let isDiveMode = false;
     
     let cameraDistance = 8;
@@ -161,14 +150,8 @@
     const player = new Player({x: 3, y: floorY, z: 3}, colorList[0]);
     scene.add(player.mesh);
 
-    // wall 
-    if(cubes.length === 0) {
-      const cube = new Block({x:2, y: floorY, z: -2}); // オリジナルのCubeを作る呪文
-      cubesFlag[48][52] = true; // cubeがその位置に登録されているかどうかどうかの設定
-      cubes.push(cube);
-      // Step.2 作ったらシーンにcubeのメッシュを登録しよう
-      scene.add( cube.mesh );
-    }
+    // wall TODO: 本陣の設置はここで。
+
 
     // Floor　床（平面）を作ろう
     const floor = new Floor(color.floor);
@@ -289,14 +272,6 @@
       // ループの開始
       processing();
     });
-
-
-    // 動いた時に線を描きたい場合は呼び出す関数
-    function drawLine() {
-      points.push(new THREE.Vector3(player.mesh.position.x, player.mesh.position.y, player.mesh.position.z));
-      line.geometry = new THREE.BufferGeometry().setFromPoints(points)
-    }
-
 
     // 各種ボタン連打・弾丸発射間隔の計測用変数
     const interval = {
@@ -465,13 +440,6 @@
           
           if (result.color !== color.wall) {
             splash(cube.position, result.color.splash);
-
-            // TODO: ぶつかったときに色が塗られていたら，隣の壁も塗りなおせないか(もちろんその壁の地面も）
-            // const hitWall = splash(cube.position, result.color.splash);
-            // console.log(hitWall)
-            // hitWall.forEach(pos => {
-            //   cubes[pos.z][pos.x] = cube.color.ink;
-            // });
           }
         }
       })
@@ -496,7 +464,6 @@
         // 弾とプレイヤーの接触
         objects.forEach(obj => {
           if(obj.collision(ball)) {
-            console.log(obj)
             // TODO: ここ，何とかして整頓
             socket.emit("changeColor", {id: obj.id, color: obj.color})
             ball.collision(obj)
@@ -505,7 +472,9 @@
         });
         if(player.collision(ball)) {
           // TODO: L-Button押したときの色の変化も合わせる
-          ball.collision(player)
+          ball.collision(player);
+          console.log(ball.color.index)
+          colorIndex = ball.color.index;
           splash(player.mesh.position, ball.color.splash);
         }
 
@@ -593,7 +562,6 @@
           }
         }
       })
-
                 
       mapCamera.position.x = player.mesh.position.x;
       mapCamera.position.z = player.mesh.position.z;

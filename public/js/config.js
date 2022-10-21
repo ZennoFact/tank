@@ -57,20 +57,24 @@ const color = {
     // 青系
     ink: 0x6464ff,
     splash: 0x9696ff,
+    index: 0,
   },
   player2: {
     // 赤系
     ink: 0xff420e,
     splash: 0xf98866,
+    index: 1,
   },
   player3: {
     // 黄系
     ink: 0xf6a807,
     splash: 0xfbd509,
+    index: 2,
   },
   player4: {
     // 緑系
     ink: 0x30b947,
     splash: 0x87e65e,
+    index: 3,
   },
 };

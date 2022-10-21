@@ -24,7 +24,7 @@ class Player extends SplaObject {
       new THREE.MeshBasicMaterial({ color: playerColor.ink }),
       new THREE.MeshBasicMaterial({ color: color.body }),
       new THREE.MeshBasicMaterial({ color: color.body }),
-      new THREE.MeshBasicMaterial({ color: color.body }),
+      new THREE.MeshBasicMaterial({ color: this.color.ink }),
     ];
     this.mesh = new THREE.Mesh(
       new THREE.BoxGeometry(0.8, 0.8, 1.6), // 形状の指定
@@ -67,7 +67,7 @@ class Player extends SplaObject {
   }
 
   changeColor(color) {
-    // TODO: 1面だけ色を変える工夫を検討
+    // 上面と正面だけ色を変更
     if (color) this.color = color;
     this.material = [
       new THREE.MeshBasicMaterial({ color: this.bodyColor }),
@@ -75,7 +75,7 @@ class Player extends SplaObject {
       new THREE.MeshBasicMaterial({ color: this.color.ink }),
       new THREE.MeshBasicMaterial({ color: this.bodyColor }),
       new THREE.MeshBasicMaterial({ color: this.bodyColor }),
-      new THREE.MeshBasicMaterial({ color: this.bodyColor }),
+      new THREE.MeshBasicMaterial({ color: this.color.ink }),
     ];
     this.mesh.material = this.material;
   }
