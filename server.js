@@ -18,7 +18,16 @@ app.get("/", (req, res) => {
         "utf-8",
         (err, html) => {
           if (err) throw err; // 例外発生時の処理
-          res.end(html.replace("'%%MAP%%'", JSON.stringify(map)));
+          const replaceMap = html.replace("'%%MAP%%'", JSON.stringify(map));
+          let playerType = "player";
+          console.log(req.query.type);
+          if (req.query.type && req.query.type === "gm") playerType = "gm";
+          console.log(playerType);
+          const content = replaceMap.replace(
+            "'%%USER_TYPE%%'",
+            "'" + playerType + "'"
+          );
+          res.end(content);
         }
       );
     })

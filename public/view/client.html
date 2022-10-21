@@ -45,6 +45,7 @@
   <script src="./js/ui.js"></script>
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    const userType = '%%USER_TYPE%%';
     const map = '%%MAP%%';
     const scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x000000 );
@@ -59,7 +60,6 @@
 
     let objects = [];
 
-    // TODO: キーボードの操作とゲームパッドの操作を両立させたい
     let pressed = {
       lButton: false,
       rButton: false,
@@ -80,13 +80,17 @@
 
     let cubes = [];
     for (let i = 0; i <= 100; i++) {
+      let array = [];
       for (let j = 0; j <= 100; j++) {
         if(map[i][j] === '1') {
           const cube = new Block({x:j - 50, y: floorY, z: i - 50});
-          cubes.push(cube);
           scene.add(cube.mesh);
+          array.push(cube);
+        } else {
+          array.push(false);
         }
       }
+      cubes.push(array);
     }
 
     let isDiveMode = false;
@@ -96,7 +100,7 @@
     let currentState = viewMode.birdsEye; 
     let weapon = weaponMode.main;
 
-    const cameraBaseHeight = 20;
+    const cameraBaseHeight = (userType === 'player') ? 20 : 100;
     const cameraEditHeight = 70;
 
     // DEBUG
@@ -148,7 +152,9 @@
     colorIndex = 0;
     colorList = [color.player1, color.player2, color.player3, color.player4]
     const player = new Player({x: 3, y: floorY, z: 3}, colorList[0]);
-    scene.add(player.mesh);
+    if(userType === 'player') {
+      scene.add(player.mesh);
+    }
 
     // wall TODO: 本陣の設置はここで。
 
@@ -243,11 +249,13 @@
         objects.push(player);
       }
 
-      socket.emit('onStage', {
-        color: player.color,
-        position: player.mesh.position,
-        rotation: player.mesh.rotation.y
-      });
+      if(userType === 'player') {
+        socket.emit('onStage', {
+          color: player.color,
+          position: player.mesh.position,
+          rotation: player.mesh.rotation.y
+        });
+      }
       socket.on("appear", (data) => {
         let p = data.object;
         const player = new Player({x: p.position.x, y: p.position.y, z: p.position.z}, p.color);
@@ -283,11 +291,14 @@
       rb: 0
     }
 
+
+    // TODO: playerのみの操作，どこまできっちり分けるか
     function processing() {
       requestAnimationFrame( processing );
-
+      
       let clone = player.mesh.clone();
       let oldInk = player.color.ink;
+      
       // ゲームパッドが使えるときの処理
       const padList = navigator.getGamepads();
       if(padList[0]) {
@@ -302,124 +313,128 @@
         tilted.lStickV = (pad.axes[config.stick.leftY]) ? pad.axes[config.stick.leftY] : 0;
         tilted.rStickH = (pad.axes[config.stick.rightX]) ? pad.axes[config.stick.rightX] : 0;
       }
-  
-      const rt = document.querySelector('#rTriger')
-      // ボールを投げる
-      interval.triger--;
-      if(interval.triger === 0) rt.classList.remove('cooldown');
-      interval.rb--;
-      if(pressed.rTriger) {
-        if(interval.triger < 0) {
-          if(weapon !== weaponMode.main) weapon = weaponMode.main;
-          if(weapon === weaponMode.main && !isDiveMode) {
-            shoot();
-            interval.triger = 30; // 連射速度を制御
-            rt.classList.add('cooldown');
-          }
-        }
-        if(pressed.rButton) document.querySelector('#rButton').classList.remove('active');
-      } else {
-        if(pressed.rButton) {
-          document.querySelector('#rButton').classList.add('active');
-          if (interval.rb < 0) {
-            if(weapon !== weaponMode.sub1) weapon = weaponMode.sub1;
-            if(weapon === weaponMode.sub1) {
-              subWeapon1();
-              interval.rb = 30;
+      if(userType === 'player') {
+    
+        const rt = document.querySelector('#rTriger')
+        // ボールを投げる
+        interval.triger--;
+        if(interval.triger === 0) rt.classList.remove('cooldown');
+        interval.rb--;
+        if(pressed.rTriger) {
+          if(interval.triger < 0) {
+            if(weapon !== weaponMode.main) weapon = weaponMode.main;
+            if(weapon === weaponMode.main && !isDiveMode) {
+              shoot();
+              interval.triger = 30; // 連射速度を制御
+              rt.classList.add('cooldown');
             }
           }
+          if(pressed.rButton) document.querySelector('#rButton').classList.remove('active');
         } else {
-          document.querySelector('#rButton').classList.remove('active');
+          if(pressed.rButton) {
+            document.querySelector('#rButton').classList.add('active');
+            if (interval.rb < 0) {
+              if(weapon !== weaponMode.sub1) weapon = weaponMode.sub1;
+              if(weapon === weaponMode.sub1) {
+                subWeapon1();
+                interval.rb = 30;
+              }
+            }
+          } else {
+            document.querySelector('#rButton').classList.remove('active');
+          }
         }
-      }
-
-      // TODO: ここで次の位置を決定するmeshを作成
-      // clone = player.mesh.clone();
-    
-      // 潜行
-      if(pressed.lTriger) {
-        if(interval.lTriger < 0 && isPlayerArea(player)) {
-          document.querySelector('#dive').classList.add('active');
-          player.mesh.position.y = -0.35;
-          isDiveMode = true;
-          console.log("dive start")
-        } else if(isDiveMode && !isPlayerArea(player)) {
+  
+        // 潜行
+        if(pressed.lTriger) {
+          if(interval.lTriger < 0 && isPlayerArea(player)) {
+            document.querySelector('#dive').classList.add('active');
+            player.mesh.position.y = -0.35;
+            isDiveMode = true;
+            console.log("dive start")
+          } else if(isDiveMode && !isPlayerArea(player)) {
+            isDiveMode = false;
+            document.querySelector('#dive').classList.remove('active');
+            document.querySelector('#dive').classList.add('penalty');
+            interval.lTriger = 30; // 連射速度を制御
+            player.mesh.position.y = floorY;
+            
+            console.log("dive over")
+          }
+        } else if(!isDiveMode) {
+          interval.lTriger--;
+        } else if (isDiveMode) { 
           isDiveMode = false;
           document.querySelector('#dive').classList.remove('active');
-          document.querySelector('#dive').classList.add('penalty');
           interval.lTriger = 30; // 連射速度を制御
+          if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
           player.mesh.position.y = floorY;
-          
-          console.log("dive over")
+          console.log('dive stop')
         }
-      } else if(!isDiveMode) {
-        interval.lTriger--;
-      } else if (isDiveMode) { 
-        isDiveMode = false;
-        document.querySelector('#dive').classList.remove('active');
-        interval.lTriger = 30; // 連射速度を制御
-        if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
-        player.mesh.position.y = floorY;
-        console.log('dive stop')
-      }
-
-      if(interval.lTriger === 0) {
-        const ui = document.querySelector('#dive');
-        ui.classList.remove('cooldown');
-        ui.classList.remove('penalty');
-      }
-
-      // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
-      if(tilted.lStickV < -0.3 ) {
-        let speed = 0.1 * tilted.lStickV;
-        if (isDiveMode) speed *= 2;
-        player.move(speed);
-        document.querySelector('#lStick').classList.add("active");
-      } else if(tilted.lStickV > 0.3) {
-        let speed = 0.1 * tilted.lStickV;
-        if (isDiveMode) speed *= 2;
-        player.move(speed);
-        document.querySelector('#lStick').classList.add("active");
-      } else {
-        document.querySelector('#lStick').classList.remove("active");
-      }
-      
-      if(tilted.rStickH < -0.3 || 0.3 < tilted.rStickH) {
-        document.querySelector('#rStick').classList.add("active");
-        player.roll(tilted.rStickH);
-      } else {
-        document.querySelector('#rStick').classList.remove("active");
-      }
-
-      // 視点変更
-      interval.rs--;
-      if(pressed.rStick) {
-        if (interval.rs < 0) {
-          interval.rs = 20;
-          currentState = (currentState + 1) % 3;
-          setCamera(currentState);
+  
+        if(interval.lTriger === 0) {
+          const ui = document.querySelector('#dive');
+          ui.classList.remove('cooldown');
+          ui.classList.remove('penalty');
         }
-      }
-
-      // 色変更 
-      interval.lb--;
-      if(pressed.lButton) {
-        if (interval.lb < 0) {
-          interval.lb = 30;
-
-          colorIndex = (colorIndex + 1) % 4;
-          player.changeColor(colorList[colorIndex]);
-          showColor(player.color.ink)
+  
+        // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
+        if(tilted.lStickV < -0.3 ) {
+          let speed = 0.1 * tilted.lStickV;
+          if (isDiveMode) speed *= 2;
+          player.move(speed);
+          document.querySelector('#lStick').classList.add("active");
+        } else if(tilted.lStickV > 0.3) {
+          let speed = 0.1 * tilted.lStickV;
+          if (isDiveMode) speed *= 2;
+          player.move(speed);
+          document.querySelector('#lStick').classList.add("active");
+        } else {
+          document.querySelector('#lStick').classList.remove("active");
         }
-      }      
-      
-      // 床の範囲を越えたら重力の影響を受けます。
-      if(player.mesh.position.x < -50 || 50 < player.mesh.position.x || player.mesh.position.z < -50 || 50 < player.mesh.position.z) {
-        player.mesh.position.y -= 0.98;
+        
+        if(tilted.rStickH < -0.3 || 0.3 < tilted.rStickH) {
+          document.querySelector('#rStick').classList.add("active");
+          player.roll(tilted.rStickH);
+        } else {
+          document.querySelector('#rStick').classList.remove("active");
+        }
+  
+        // 視点変更
+        interval.rs--;
+        if(pressed.rStick) {
+          if (interval.rs < 0) {
+            interval.rs = 20;
+            currentState = (currentState + 1) % 3;
+            setCamera(currentState);
+          }
+        }
+  
+        // 色変更 
+        interval.lb--;
+        if(pressed.lButton) {
+          if (interval.lb < 0) {
+            interval.lb = 30;
+  
+            colorIndex = (colorIndex + 1) % 4;
+            player.changeColor(colorList[colorIndex]);
+            showColor(player.color.ink)
+          }
+        }      
+        
+        // 床の範囲を越えたら重力の影響を受けます。
+        if(player.mesh.position.x < -50 || 50 < player.mesh.position.x || player.mesh.position.z < -50 || 50 < player.mesh.position.z || player.mesh.position.y < -1) {
+          player.mesh.position.y -= 0.98;
+  
+          if(player.mesh.position.y < -500) player.mesh.position.set(0, floorY, 0);
+        }
       }
 
       player.setBounds();
-      cubes.forEach(cube => { // 一つ一つのキューブを取り出して，
+      // 壁との接触は現在は自プレイヤーのもののみ処理する
+      let surroundCubes = getSurroundCubes(player.mesh.position.x, player.mesh.position.z);
+      
+      surroundCubes.forEach(cube => { // 一つ一つのキューブを取り出して，
         // Step.6 衝突の検知 cube.collision(player);
         const result = cube.collision(player);
 
@@ -428,21 +443,21 @@
           if (padList[0]) {
             padList[0].vibrationActuator.playEffect('dual-rumble', {
               startDelay: 0,
-              duration: 100,
+              // duration: 30, // この振動の間隔，どこまでパフォーマンスに影響する？
               weakMagnitude: 1.0,
               strongMagnitude: 1.0,
             });
           }
           
           // ぶつかったらしばらく玉が撃てないように
-          interval.triger = 30;
-          interval.rb = 30;
+          interval.triger = 20;
+          interval.rb = 20;
           
           if (result.color !== color.wall) {
             splash(cube.position, result.color.splash);
           }
         }
-      })
+      });
 
       balls.forEach((ball, i) =>{
         if(currentState === viewMode.firstPerson) {
@@ -453,13 +468,16 @@
           ball.mesh.material.opacity = 1.0;
         }
         ball.move();
-        cubes.forEach(cube => {
+        surroundCubes = [];
+        surroundCubes = getSurroundCubes(ball.mesh.position.x, ball.mesh.position.z);
+        surroundCubes.forEach(cube => {
           if(ball.collision(cube)) {
             cube.mesh.material.color.setHex(ball.color.ink);
             this.isNotHit = false;
             splash(cube.mesh.position, ball.color.splash);
           }
         });
+
 
         // 弾とプレイヤーの接触
         objects.forEach(obj => {
@@ -507,45 +525,43 @@
       });
 
       // プレイヤー情報に変更があれば，ここで位置情報をサーバへ送信
-      if(!player.equals(clone, oldInk)) {
+      if(userType === 'player' && !player.equals(clone, oldInk)) {
         let newData = {color: player.color, position: player.mesh.position, rotation: player.mesh.rotation.y};
         if(socket.id) socket.emit("move", newData);
       }
     }
 
     socket.on("move", data => {
-      // TODO: ここ，オブジェクトを一つにまとめてループを減らす
-      for(const [key, value] of Object.entries(data)) {
-        if(key === socket.id) {
-          player.mesh.position.set(value.position.x, value.position.y, value.position.z);
-          player.mesh.rotation.y = value.rotation;
-
-          switch(currentState) {
-            case viewMode.birdsEye:
-              camera.position.x = player.mesh.position.x;
-              camera.position.z = player.mesh.position.z;
-              break;
-              case viewMode.thirdPerson:
-              camera.rotation.y = player.mesh.rotation.y
-              
-              const rad = -player.mesh.rotation.y + (90 * Math.PI / 180);
-              camera.position.y = player.mesh.position.y + 2;
-              camera.position.x = player.mesh.position.x + cameraDistance * Math.cos(rad);
-              camera.position.z = player.mesh.position.z + cameraDistance * Math.sin(rad);
-              
-              break;
-            case viewMode.firstPerson:
-              camera.position.x = player.mesh.position.x;
-              camera.position.z = player.mesh.position.z;
-              if (isDiveMode) camera.position.y = 0.1;
-              else camera.position.y = player.mesh.position.y;
-              
-              camera.rotation.y = player.mesh.rotation.y;
-              break;
-          }
-        }
+      if(userType === player) {
+        const value = data[socket.id];
+        player.mesh.position.set(value.position.x, value.position.y, value.position.z);
+        player.mesh.rotation.y = value.rotation;
       }
-    
+
+      switch(currentState) {
+        case viewMode.birdsEye:
+          camera.position.x = player.mesh.position.x;
+          camera.position.z = player.mesh.position.z;
+          break;
+          case viewMode.thirdPerson:
+          camera.rotation.y = player.mesh.rotation.y
+          
+          const rad = -player.mesh.rotation.y + (90 * Math.PI / 180);
+          camera.position.y = player.mesh.position.y + 2;
+          camera.position.x = player.mesh.position.x + cameraDistance * Math.cos(rad);
+          camera.position.z = player.mesh.position.z + cameraDistance * Math.sin(rad);
+          
+          break;
+        case viewMode.firstPerson:
+          camera.position.x = player.mesh.position.x;
+          camera.position.z = player.mesh.position.z;
+          if (isDiveMode) camera.position.y = 0.1;
+          else camera.position.y = player.mesh.position.y;
+          
+          camera.rotation.y = player.mesh.rotation.y;
+          break;
+      }
+
       // TODO：記述位置，内容ともに要検討
       objects.forEach((obj, i) => {
         if (obj.id !== socket.id) { // プレイヤー以外の場合実行
@@ -568,6 +584,18 @@
       renderer.render( scene, camera );
       mapRenderer.render( scene, mapCamera);
     });
+
+    function getSurroundCubes(objX, objZ) {
+      const x = Math.floor(objX + 50);
+      const z = Math.floor(objZ + 50);
+      const surrounds = [];
+      for(let i = z - 4; i < z + 4; i++) {
+        for(let j = x - 4; j < x + 4; j++) {
+          if (0 <= i && i < cubes.length && 0 <= j && j < cubes[0].length && cubes[i][j]) surrounds.push(cubes[i][j]);
+        }
+      }
+      return surrounds;
+    }
   
     function shoot() {
       const ball = new Ball(player); // オリジナルのCubeを作る呪文
@@ -610,7 +638,7 @@
           camera.rotation.y = player.mesh.rotation.y;
           camera.lookAt(player.mesh.position.x, floorY, player.mesh.position.z - 1);
           if (isDiveMode) {
-            camera.position.y = 0.1; // TODO: カメラの位置を確認潜っているときは深く
+            camera.position.y = 0.1; // カメラの位置を確認潜っているときは深く
             camera.lookAt(player.mesh.position.x, 0.1, player.mesh.position.z - 1); 
           }
           break;
