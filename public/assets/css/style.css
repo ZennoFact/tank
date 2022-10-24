@@ -1,5 +1,6 @@
 * {
   margin: 0;
+  user-select: none;
 }
 
 #map {
@@ -10,6 +11,7 @@
   right: 20px;
   background-color: #646464;
   border: solid 5px #000000;
+  user-select: none;
 }
 
 /* UI parts */

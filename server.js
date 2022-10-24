@@ -37,6 +37,9 @@ app.get("/", (req, res) => {
 app.get("/solo", (req, res) => {
   res.sendFile(__dirname + "/public/view/index.html");
 });
+app.get("/phone", (req, res) => {
+  res.sendFile(__dirname + "/public/view/smartphone.html");
+});
 
 let objects = {};
 
