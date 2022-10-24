@@ -88,7 +88,23 @@
           }); 
         });
 
-
+    let pressed = {
+      lButton: false,
+      rButton: false,
+      rTriger: false,
+      lTriger: false,
+      bButton: false,
+      // xButton: false, // マップの編集をしないから使わなくていい
+      rStick: false,
+      backButton: false,
+      startButton: false,
+    }
+    let tilted = {
+      lStickV: 0,
+      lStickH: 0,
+      rStickV: 0,
+      rStickH: 0,
+    }
 
     let cubes = [];
     const cubesFlag = [];
@@ -265,6 +281,8 @@
       rs: 0,
       rb: 0
     }
+    
+    loadUI();
 
     function animate() {
       requestAnimationFrame( animate );
@@ -272,208 +290,210 @@
       const padList = navigator.getGamepads();
       if(padList[0]) {
         const pad = padList[0];
-        const bBtn = pad.buttons[config.button.b].pressed;
-        const xBtn = pad.buttons[config.button.x].pressed;
-        // const yBtn = pad.buttons[config.button.y].pressed;
-        const lBtn = pad.buttons[config.button.lb].pressed;
-        const rbBtn = pad.buttons[config.button.rb].pressed;
-        const backBtn = pad.buttons[config.button.back].pressed;
-        const startBtn = pad.buttons[config.button.start].pressed;
-        const rTriger = pad.buttons[config.button.rt].pressed; 
-        const upDown = pad.axes[config.stick.leftY];
-        const LR = pad.axes[config.stick.rightX];
-        const lTriger = pad.buttons[config.button.lt].pressed;
-        const lStick = pad.buttons[config.button.lStick].pressed;
-        const rStick = pad.buttons[config.button.rStick].pressed;
 
-        // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
-        // 移動
-        if(!isEditMode) {
-          const rt = document.querySelector('#rTriger')
-          // ボールを投げる
-          interval.triger--;
-          if(interval.triger === 0) rt.classList.remove('cooldown');
-          interval.rb--;
-          if(rTriger) {
-            if(interval.triger < 0) {
-              if(weapon !== weaponMode.main) weapon = weaponMode.main;
-              if(weapon === weaponMode.main && !isDiveMode) {
-                shoot();
-                interval.triger = 30; // 連射速度を制御
-                rt.classList.add('cooldown');
-              }
-            }
-            if(rbBtn) document.querySelector('#rButton').classList.remove('active');
-          } else {
-            if(rbBtn) {
-              document.querySelector('#rButton').classList.add('active');
-              if (interval.rb < 0) {
-                if(weapon !== weaponMode.sub1) weapon = weaponMode.sub1;
-                if(weapon === weaponMode.sub1) {
-                  subWeapon1();
-                  interval.rb = 30;
-                }
-              }
-            } else {
-              document.querySelector('#rButton').classList.remove('active');
+        pressed.lButton = (pad.buttons[config.button.lb].pressed) ? true : false;
+        pressed.rButton = (pad.buttons[config.button.rb].pressed) ? true : false;
+        pressed.bButton = (pad.buttons[config.button.b].pressed) ? true : false;
+        pressed.xButton = (pad.buttons[config.button.x].pressed) ? true : false;
+        pressed.backButton = (pad.buttons[config.button.back].pressed) ? true : false;
+        pressed.startButton = (pad.buttons[config.button.start].pressed) ? true : false;
+        pressed.rTriger = (pad.buttons[config.button.rt].pressed) ? true : false;
+        pressed.lTriger = (pad.buttons[config.button.lt].pressed) ? true : false;
+        pressed.rStick = (pad.buttons[config.button.rStick].pressed) ? true : false;
+        tilted.lStickV = (pad.axes[config.stick.leftY]) ? pad.axes[config.stick.leftY] : 0;
+        tilted.rStickH = (pad.axes[config.stick.rightX]) ? pad.axes[config.stick.rightX] : 0;
+
+        // const yBtn = pad.buttons[config.button.y].pressed;
+      }
+
+      // TODO: playerをクラス分けして，move(speed, rotation)で制御したほうがよさそう
+      // 移動
+      if(!isEditMode) {
+        const rt = document.querySelector('#rTriger')
+        // ボールを投げる
+        interval.triger--;
+        if(interval.triger === 0) rt.classList.remove('cooldown');
+        interval.rb--;
+        if(pressed.rTriger) {
+          if(interval.triger < 0) {
+            if(weapon !== weaponMode.main) weapon = weaponMode.main;
+            if(weapon === weaponMode.main && !isDiveMode) {
+              shoot();
+              interval.triger = 30; // 連射速度を制御
+              rt.classList.add('cooldown');
             }
           }
-        
-          // 潜行
-          if(lTriger) {
-            console.log(isPlayerArea(player))
-            if(interval.lTriger < 0 && isPlayerArea(player)) {
-              document.querySelector('#dive').classList.add('active');
-              player.mesh.position.y = -0.35;
-              isDiveMode = true;
-            } else if(isDiveMode && !isPlayerArea(player)) {
-              isDiveMode = false;
-              document.querySelector('#dive').classList.remove('active');
-              document.querySelector('#dive').classList.add('penalty');
-              interval.lTriger = 30; // 連射速度を制御
-              player.mesh.position.y = floorY;
+          if(pressed.rButton) document.querySelector('#rButton').classList.remove('active');
+        } else {
+          if(pressed.rButton) {
+            document.querySelector('#rButton').classList.add('active');
+            if (interval.rb < 0) {
+              if(weapon !== weaponMode.sub1) weapon = weaponMode.sub1;
+              if(weapon === weaponMode.sub1) {
+                subWeapon1();
+                interval.rb = 30;
+              }
             }
-          } else if(!lTriger && !isDiveMode) {
-            interval.lTriger--;
-          } else if (!lTriger && isDiveMode) { 
+          } else {
+            document.querySelector('#rButton').classList.remove('active');
+          }
+        }
+      
+        // 潜行
+        if(pressed.lTriger) {
+          console.log(isPlayerArea(player))
+          if(interval.lTriger < 0 && isPlayerArea(player)) {
+            document.querySelector('#dive').classList.add('active');
+            player.mesh.position.y = -0.35;
+            isDiveMode = true;
+          } else if(isDiveMode && !isPlayerArea(player)) {
             isDiveMode = false;
             document.querySelector('#dive').classList.remove('active');
+            document.querySelector('#dive').classList.add('penalty');
             interval.lTriger = 30; // 連射速度を制御
-            if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
             player.mesh.position.y = floorY;
           }
-
-          if(interval.lTriger === 0) {
-            const ui = document.querySelector('#dive');
-            ui.classList.remove('cooldown');
-            ui.classList.remove('penalty');
-          }
-
-          // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
-          if(upDown < -0.3 ) {
-            let speed = 0.1 * upDown;
-            if (isDiveMode) speed *= 2;
-            player.mesh.translateZ(speed);
-            document.querySelector('#lStick').classList.add("active");
-          } else if(upDown > 0.3) {
-            let speed = 0.1 * upDown;
-            if (isDiveMode) speed *= 2;
-            player.mesh.translateZ(speed);
-            document.querySelector('#lStick').classList.add("active");
-          } else {
-            document.querySelector('#lStick').classList.remove("active");
-          }
-          
-          if(LR < -0.3 || 0.3 < LR) {
-            document.querySelector('#rStick').classList.add("active");
-            const rad = 0.02 * LR;
-            player.mesh.rotation.y -= rad;
-            console.log(player.mesh.rotation.y)
-          } else {
-            document.querySelector('#rStick').classList.remove("active");
-          }
-
-          switch(currentState) {
-            case viewMode.birdsEye:
-              camera.position.x = player.mesh.position.x;
-              camera.position.z = player.mesh.position.z;
-              // TODO: 入れるか迷う（なんか酔いそう？）
-              // camera.rotation.z = player.rotation.y;
-              break;
-              case viewMode.thirdPerson:
-              camera.rotation.y = player.mesh.rotation.y
-              
-              const rad = -player.mesh.rotation.y + (90 * Math.PI / 180);
-              camera.position.y = player.mesh.position.y + 2;
-              camera.position.x = player.mesh.position.x + cameraDistance * Math.cos(rad);
-              camera.position.z = player.mesh.position.z + cameraDistance * Math.sin(rad);
-              
-              break;
-            case viewMode.firstPerson:
-              camera.position.x = player.mesh.position.x;
-              camera.position.z = player.mesh.position.z;
-              if (isDiveMode) camera.position.y = 0.1;
-              else camera.position.y = player.mesh.position.y;
-              
-              camera.rotation.y = player.mesh.rotation.y;
-              break;
-          }
+        } else if(!pressed.lTriger && !isDiveMode) {
+          interval.lTriger--;
+        } else if (!pressed.lTriger && isDiveMode) { 
+          isDiveMode = false;
+          document.querySelector('#dive').classList.remove('active');
+          interval.lTriger = 30; // 連射速度を制御
+          if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
+          player.mesh.position.y = floorY;
         }
 
-        // 視点変更
-        interval.rs--;
-        if(rStick) {
-          if (interval.rs < 0 && !isEditMode) {
-            interval.rs = 20;
-            currentState = (currentState + 1) % 3;
-            setCamera(currentState);
-          }
+        if(interval.lTriger === 0) {
+          const ui = document.querySelector('#dive');
+          ui.classList.remove('cooldown');
+          ui.classList.remove('penalty');
         }
 
-        // TODO: エディットモード用の操作を追加
-        // モード変更 EDIT
-        interval.x--;
-        if(xBtn) {
-          if (interval.x < 0) {
-            interval.x = 20;
-
-            if(isEditMode) {
-              isEditMode = false;
-              setCamera(currentState);
-            } else { 
-              isEditMode = true;
-              // TODO: モードに応じた視点に変更
-              camera.position.y = cameraEditHeight;
-              camera.position.x = 0;
-              camera.position.z = 0;
-              camera.rotation.y = 0;
-              camera.lookAt(0, 0, 0);
-            } 
-          }
+        // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
+        if(tilted.lStickV < -0.3 ) {
+          let speed = 0.1 * tilted.lStickV;
+          if (isDiveMode) speed *= 2;
+          player.mesh.translateZ(speed);
+          document.querySelector('#lStick').classList.add("active");
+        } else if(tilted.lStickV > 0.3) {
+          let speed = 0.1 * tilted.lStickV;
+          if (isDiveMode) speed *= 2;
+          player.mesh.translateZ(speed);
+          document.querySelector('#lStick').classList.add("active");
+        } else {
+          document.querySelector('#lStick').classList.remove("active");
+        }
+        
+        if(tilted.rStickH < -0.3 || 0.3 < tilted.rStickH) {
+          document.querySelector('#rStick').classList.add("active");
+          const rad = 0.02 * tilted.rStickH;
+          player.mesh.rotation.y -= rad;
+          console.log(player.mesh.rotation.y)
+        } else {
+          document.querySelector('#rStick').classList.remove("active");
         }
 
-        // 色変更 
-        interval.lb--;
-        if(lBtn) {
-          if (interval.lb < 0) {
-            interval.lb = 30;
-
-            colorIndex = (colorIndex + 1) % 4;
-            player.changeColor(colorList[colorIndex]);
-            showColor(player.color.ink)
-          }
-        }
-
-        // ハロウィン仕様
-        bombTimer--;
-        if(bombTimer === 0) {
-          canBomb = true;
-          document.querySelector('#pumpkin').classList.remove('charging');
-        }
-        if(bBtn && canBomb) {
-          if (pumpkinSeed) {
-            canBomb = false;
-            bombTimer = 500;
-            document.querySelector('#pumpkin').classList.add('charging');
-            pumpkinBomb(player, pumpkinSeed);
-          }
-        }
-
-
-        if(startBtn) {
-          alert('マップを保存しました！');
-          const coordinates = cubes.map(cube => cube.position);
-          localStorage.setItem('map', JSON.stringify(coordinates));
-        } 
-        if(backBtn) {
-          const result = window.confirm('保存されたマップデータを削除しますか？');
-          if(result) {
-            localStorage.removeItem('map');
-            alert('保存されたマップデータを消去しました')
-            location.reload();
-          }
+        switch(currentState) {
+          case viewMode.birdsEye:
+            camera.position.x = player.mesh.position.x;
+            camera.position.z = player.mesh.position.z;
+            // TODO: 入れるか迷う（なんか酔いそう？）
+            // camera.rotation.z = player.rotation.y;
+            break;
+            case viewMode.thirdPerson:
+            camera.rotation.y = player.mesh.rotation.y
+            
+            const rad = -player.mesh.rotation.y + (90 * Math.PI / 180);
+            camera.position.y = player.mesh.position.y + 2;
+            camera.position.x = player.mesh.position.x + cameraDistance * Math.cos(rad);
+            camera.position.z = player.mesh.position.z + cameraDistance * Math.sin(rad);
+            
+            break;
+          case viewMode.firstPerson:
+            camera.position.x = player.mesh.position.x;
+            camera.position.z = player.mesh.position.z;
+            if (isDiveMode) camera.position.y = 0.1;
+            else camera.position.y = player.mesh.position.y;
+            
+            camera.rotation.y = player.mesh.rotation.y;
+            break;
         }
       }
+
+      // 視点変更
+      interval.rs--;
+      if(pressed.rStick) {
+        if (interval.rs < 0 && !isEditMode) {
+          interval.rs = 20;
+          currentState = (currentState + 1) % 3;
+          setCamera(currentState);
+        }
+      }
+
+      // TODO: エディットモード用の操作を追加
+      // モード変更 EDIT
+      interval.x--;
+      if(pressed.xButton) {
+        if (interval.x < 0) {
+          interval.x = 20;
+
+          if(isEditMode) {
+            isEditMode = false;
+            setCamera(currentState);
+          } else { 
+            isEditMode = true;
+            // TODO: モードに応じた視点に変更
+            camera.position.y = cameraEditHeight;
+            camera.position.x = 0;
+            camera.position.z = 0;
+            camera.rotation.y = 0;
+            camera.lookAt(0, 0, 0);
+          } 
+        }
+      }
+
+      // 色変更 
+      interval.lb--;
+      if(pressed.lButton) {
+        if (interval.lb < 0) {
+          interval.lb = 30;
+
+          colorIndex = (colorIndex + 1) % 4;
+          player.changeColor(colorList[colorIndex]);
+          showColor(player.color.ink)
+        }
+      }
+
+      // ハロウィン仕様
+      bombTimer--;
+      if(bombTimer === 0) {
+        canBomb = true;
+        document.querySelector('#pumpkin').classList.remove('charging');
+      }
+      if(pressed.bButton && canBomb) {
+        if (pumpkinSeed) {
+          canBomb = false;
+          bombTimer = 500;
+          document.querySelector('#pumpkin').classList.add('charging');
+          pumpkinBomb(player, pumpkinSeed);
+        }
+      }
+
+
+      if(pressed.startButton) {
+        alert('マップを保存しました！');
+        const coordinates = cubes.map(cube => cube.position);
+        localStorage.setItem('map', JSON.stringify(coordinates));
+      } 
+      if(pressed.backButton) {
+        const result = window.confirm('保存されたマップデータを削除しますか？');
+        if(result) {
+          localStorage.removeItem('map');
+          alert('保存されたマップデータを消去しました')
+          location.reload();
+        }
+      }
+    
       
       // 床の範囲を越えたら重力の影響を受けます。
       if(player.mesh.position.x < -50 || 50 < player.mesh.position.x || player.mesh.position.z < -50 || 50 < player.mesh.position.z) {
@@ -720,8 +740,8 @@
         e.gamepad.index, e.gamepad.id);
     });
 
-    loadUI();
     showColor(player.color.ink);
   </script>
+  <script src="./js/keyboard.js"></script>
 </body>
 </html>

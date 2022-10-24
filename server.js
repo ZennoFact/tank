@@ -34,6 +34,10 @@ app.get("/", (req, res) => {
   );
 });
 
+app.get("/solo", (req, res) => {
+  res.sendFile(__dirname + "/public/view/index.html");
+});
+
 let objects = {};
 
 io.on("connection", (socket) => {
