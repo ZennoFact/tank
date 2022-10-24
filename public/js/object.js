@@ -249,3 +249,44 @@ class Floor extends SplaObject {
     return this.boundingBox;
   }
 }
+
+class Pumpkin extends SplaObject {
+  constructor(player, seed) {
+    super(player.color);
+
+    const position = player.mesh.position;
+    this.isNotHit = true;
+    this.life = 100;
+
+    this.mesh = seed.clone();
+    this.mesh.position.set(position.x, position.y, position.z);
+
+    // 接触判定用BoundingBox
+    this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
+    this.boundingBox.setFromObject(this.mesh);
+  }
+
+  move() {
+    // TODO: おもろい動きの検討
+    this.mesh.position.y += 0.1;
+    this.mesh.rotation.z += 0.05;
+    this.mesh.scale.x += 0.001;
+    this.mesh.scale.y += 0.001;
+    this.mesh.scale.z += 0.001;
+    this.life--;
+    if (this.life < 0) this.isNotHit = false; // 時間で爆発？
+  }
+
+  collision(obj) {
+    this.boundingBox
+      .copy(this.mesh.geometry.boundingBox)
+      .applyMatrix4(this.mesh.matrixWorld);
+    if (this.boundingBox.intersectsBox(obj.boundingBox)) {
+      obj.color = this.color;
+      this.isNotHit = false;
+      return true;
+    } else {
+      return false;
+    }
+  }
+}
