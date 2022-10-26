@@ -38,8 +38,6 @@
     </div>
   </template>
   <script src="./js/vendor/three.js"></script>
-  <!-- <script src="./js/vendor/MTLLoader.js"></script>
-  <script src="./js/vendor/OBJLoader.js"></script> -->
   <script src="./js/config.js"></script>
   <script src="./js/object.js"></script>
   <script src="./js/ui.js"></script>
@@ -53,12 +51,9 @@
     let canBomb = true;
     let bombTimer = 0;
 
-    let balls = [];
-    let ps = [];
-    let padList = [];
-    const points = [];
-
-    let objects = [];
+    let balls = []; // 発射されたボールを保持
+    let padList = []; // 接続されているゲームパッドを保持
+    let objects = []; // 他のユーザーを保持
 
     let pressed = {
       lButton: false,
@@ -241,38 +236,38 @@
       socket.id = data.id;
       for(const [key, value] of Object.entries(data.objects)) {
         const p = value.id
-        const player = new Player({x: value.position.x, y: value.position.y, z: value.position.z}, value.color);
+        const player = new Player({x: value.position.x, y: value.position.y, z: value.position.z}, colorList[value.color]);
         player.id = key;
         player.mesh.rotation.y = value.rotation;
-        player.changeColor(value.color);
+        player.changeColor(colorList[value.color]);
         scene.add(player.mesh);
         objects.push(player);
       }
 
       if(userType === 'player') {
+        player.changeColor(colorList[data.color]);
+        showColor(player.color.ink);
         socket.emit('onStage', {
-          color: player.color,
+          color: player.color.index,
           position: player.mesh.position,
           rotation: player.mesh.rotation.y
         });
       }
       socket.on("appear", (data) => {
         let p = data.object;
-        const player = new Player({x: p.position.x, y: p.position.y, z: p.position.z}, p.color);
+        const player = new Player({x: p.position.x, y: p.position.y, z: p.position.z}, colorList[p.color]);
         player.id = data.id
         player.mesh.rotation.y = p.rotation;
         scene.add(player.mesh);
         objects.push(player);
       });
       socket.on("weapon", (data) => {
-        const p = objects.filter(obj => obj.id === data.id)[0];
+        const p = objects.find(obj => obj.id === data.id);
         if (data.arm === "main") {
-          // const ball = new Ball(player);
           const ball = new Ball(p);
           scene.add( ball.mesh );
           balls.push(ball);
-        } else if (data.arm === "sub1") {
-          
+        } else if (data.arm === "sub1") {      
           splash(p.mesh.position, p.color.splash);
         }
       });
@@ -482,17 +477,12 @@
         // 弾とプレイヤーの接触
         objects.forEach(obj => {
           if(obj.collision(ball)) {
-            // TODO: ここ，何とかして整頓
-            socket.emit("changeColor", {id: obj.id, color: obj.color})
-            ball.collision(obj)
             splash(obj.mesh.position, ball.color.splash);
           }
         });
         if(player.collision(ball)) {
-          // TODO: L-Button押したときの色の変化も合わせる
-          ball.collision(player);
-          console.log(ball.color.index)
           colorIndex = ball.color.index;
+          showColor(ball.color.ink)
           splash(player.mesh.position, ball.color.splash);
         }
 
@@ -510,23 +500,9 @@
       });
       balls = balls.filter(b => b.isNotHit);
 
-      ps.forEach((p, i) => {
-        p.move();
-
-        if(p.life === 0) {
-          ps.splice(i, 1);
-          scene.remove(p.mesh);
-          splash(p.mesh.position, player.color.splash, 10)
-          p.mesh.children.forEach(mesh => {
-            mesh.material.dispose();
-            mesh.geometry.dispose();
-          });
-        }
-      });
-
-      // プレイヤー情報に変更があれば，ここで位置情報をサーバへ送信
+      // プレイヤー情報に変更があれば，ここで位置情報をサーバへ送信：（位置・回転・色）
       if(userType === 'player' && !player.equals(clone, oldInk)) {
-        let newData = {color: player.color, position: player.mesh.position, rotation: player.mesh.rotation.y};
+        let newData = {color: player.color.index, position: player.mesh.position, rotation: player.mesh.rotation.y};
         if(socket.id) socket.emit("move", newData);
       }
     }
@@ -562,14 +538,15 @@
           break;
       }
 
-      // TODO：記述位置，内容ともに要検討
+      // TODO: 記述位置，内容ともに要検討
       objects.forEach((obj, i) => {
         if (obj.id !== socket.id) { // プレイヤー以外の場合実行
           const value = data[obj.id];
           if (value) {
             obj.mesh.position.set(value.position.x, value.position.y, value.position.z);
             obj.mesh.rotation.y = value.rotation;
-            obj.changeColor(value.color);
+            obj.changeColor(colorList[value.color]);
+            //　INFO: ここで色情報を送信しない場合は，ブラウザをバックグラウンドに回されるずれが生じる。現在は許容する方針。
           } else {
             objects.splice(i, 1);
             scene.remove(obj.mesh);

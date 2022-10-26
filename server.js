@@ -20,9 +20,7 @@ app.get("/", (req, res) => {
           if (err) throw err; // 例外発生時の処理
           const replaceMap = html.replace("'%%MAP%%'", JSON.stringify(map));
           let playerType = "player";
-          console.log(req.query.type);
           if (req.query.type && req.query.type === "gm") playerType = "gm";
-          console.log(playerType);
           const content = replaceMap.replace(
             "'%%USER_TYPE%%'",
             "'" + playerType + "'"
@@ -42,10 +40,12 @@ app.get("/phone", (req, res) => {
 });
 
 let objects = {};
+let colorIndex = 0;
 
 io.on("connection", (socket) => {
   console.log("a user connected");
-  socket.emit("login", { id: socket.id, objects: objects });
+  socket.emit("login", { id: socket.id, objects: objects, color: colorIndex });
+  colorIndex = ++colorIndex % 4;
 
   socket.on("onStage", (player) => {
     objects[socket.id] = player;
@@ -58,7 +58,7 @@ io.on("connection", (socket) => {
     objects[socket.id].color = data.color;
   });
   socket.on("changeColor", (data) => {
-    console.log(data);
+    console.log("changeColor: " + data.color);
     objects[data.id].color = data.color;
   });
   // おそらくえらいこっちゃになる。

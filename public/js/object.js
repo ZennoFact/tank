@@ -52,6 +52,9 @@ class Player extends SplaObject {
       .applyMatrix4(this.mesh.matrixWorld);
     if (this.boundingBox.intersectsBox(obj.boundingBox)) {
       this.changeColor(obj.color);
+
+      if (obj.is() === "Ball") obj.isNotHit = false;
+
       return true;
     } else {
       return false;
@@ -184,13 +187,11 @@ class Ball extends SplaObject {
       .copy(this.mesh.geometry.boundingBox)
       .applyMatrix4(this.mesh.matrixWorld);
     if (this.boundingBox.intersectsBox(obj.boundingBox)) {
-      // obj.changeColor(this.color);
       obj.color = this.color;
       this.isNotHit = false;
       return true;
-    } else {
-      return false;
     }
+    return false;
   }
 }
 
@@ -285,8 +286,7 @@ class Pumpkin extends SplaObject {
       obj.color = this.color;
       this.isNotHit = false;
       return true;
-    } else {
-      return false;
     }
+    return false;
   }
 }
