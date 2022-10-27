@@ -9,32 +9,65 @@
 </head>
 <body>
   <template id="uiParts">
-    <div id="rTriger" class="ui">
+    <div id="rTriger" class="ui ui-label">
       <h2>Main</h2>
       <p>R-Triger</p>
     </div>
-    <div id="rButton" class="ui">
+    <div id="rButton" class="ui ui-label">
       <h2>Sub</h2>
       <p>R-Button</p>
     </div>
-    <div id="dive" class="ui">
+    <div id="dive" class="ui　ui-label">
       <h2>Dive</h2>
       <p>L-Triger</p>
     </div>
-    <div id="color" class="ui">
+    <div id="color" class="ui ui-label">
       <h2>Color: #<span class="color">6464ff</span></h2>
       <p><s>L-Button</s></p>
     </div>
-    <div id="lStick" class="ui">
+    <div id="lStick" class="ui ui-label">
       <h2>Move</h2>
       <p>↑L-Stick↓</p>
     </div>
-    <div id="rStick" class="ui">
+    <div id="rStick" class="ui ui-label">
       <h2>Roll</h2>
       <p>←R-Stick→</p>
     </div>
-    <div id="view" class="ui">
+    <div id="view" class="ui ui-label">
       <h2 class="mode">Bird's Eye</h2><p class="parts">R-Stick Press</p>
+    </div>
+  </template>
+  <template id="gmParts">
+    <ul class="ui team-data">
+      <li>
+        <div id="blueTeam" class="ui-label team-data-label">
+          <h2>Blue:<span>0%</span></h2>
+          <p>0人</p>
+        </div>
+      </li>
+      <li>
+        <div id="redTeam" class="ui-label team-data-label">
+          <h2>Red:<span>0%</span></h2>
+          <p>0人</p>
+        </div>
+      </li>
+      <li>
+        <div id="yellowTeam" class="ui-label team-data-label">
+          <h2>yellow:<span>0%</span></h2>
+          <p>0人</p>
+        </div>
+      </li>
+      <li>
+        <div id="greenTeam" class="ui-label team-data-label">
+          <h2>Green:<span>0%</span></h2>
+          <p>0人</p>
+        </div>
+      </li>
+    </ul>
+    <!-- TODO: 時間はplayer側にも必要と思われる -->
+    <div id="timeDisplay" class="ui ui-label timer">
+      <h2>0:00</h2>
+      <p>Ready?</p>
     </div>
   </template>
   <script src="./js/vendor/three.js"></script>
@@ -131,11 +164,12 @@
     mapRenderer.setSize( window.innerWidth, window.innerHeight );
     mapRenderer.domElement.id = 'map';
     // Step.5 画面に部品を登録します　document.body.appendChild( mapRenderer.domElement );
-    document.body.appendChild( mapRenderer.domElement ); 
+    if(userType === 'player') {
+      document.body.appendChild( mapRenderer.domElement ); 
+      mapRenderer.domElement.style.width = "250px"; // マップを表示するパーツなのでちっさくしましょう
+      mapRenderer.domElement.style.height = "250px";
+    }
 
-    mapRenderer.domElement.style.width = "250px"; // マップを表示するパーツなのでちっさくしましょう
-    mapRenderer.domElement.style.height = "250px";
-    
     // マップを表示するためのカメラも作って
     const mapCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
     mapCamera.position.set(0, 30, 0);
@@ -179,6 +213,34 @@
       }
 
       return true;
+    }
+    function areaCheck() {
+      let colors = [];
+      for(let i = 0; i < colorList.length; i++) {
+        const c = new THREE.Color();
+        c.setHex(colorList[i].splash);
+        colors.push(c);
+      }
+      
+      let total = 0;
+      let blues = 0;
+      let reds = 0;
+      let yellows = 0;
+      let greens = 0;
+      // TODO: 色の確認から再開
+      for (let i = 0; i < floor.colors.length; i += 4) {
+        total++;
+
+        if(colors[0].r === floor.colors[i] && colors[0].g === floor.colors[i + 1] && colors[0].b === floor.colors[i + 2]) blues++;
+        else if(colors[1].r === floor.colors[i] && colors[1].g === floor.colors[i + 1] && colors[1].b === floor.colors[i + 2]) reds++;
+        else if(colors[2].r === floor.colors[i] && colors[2].g === floor.colors[i + 1] && colors[2].b === floor.colors[i + 2]) yellows++;
+        else if(colors[3].r === floor.colors[i] && colors[3].g === floor.colors[i + 1] && colors[3].b === floor.colors[i + 2]) greens++;  
+      }
+      // TODO: 塗りきったら１００％になるか確認
+      document.querySelector('#blueTeam h2 span').innerHTML =(blues / total * 100).toFixed(2) + "%";
+      document.querySelector('#redTeam h2 span').innerHTML = (reds / total * 100).toFixed(2) + "%";
+      document.querySelector('#yellowTeam h2 span').innerHTML = (yellows / total * 100).toFixed(2) + "%";
+      document.querySelector('#greenTeam h2 span').innerHTML = (greens / total * 100).toFixed(2) + "%"; 
     }
 
     function splash(position, inkColor = color.floor, power = 2) {
@@ -225,9 +287,12 @@
     }
 
     
-    loadUI();
-    showColor(player.color.ink);
-
+    if(userType === "player") {
+      loadUI();
+      showColor(player.color.ink);
+    } else {
+      loadUI("gm");
+    }
 
     // TODO: 適切な記載場所を検討
     /* socket.io */
@@ -560,6 +625,9 @@
       mapCamera.position.z = player.mesh.position.z;
       renderer.render( scene, camera );
       mapRenderer.render( scene, mapCamera);
+
+      // TODO: プレイヤーと管理者の処理の分岐，もうちょいうまくできないか
+      if(userType === "gm") areaCheck();
     });
 
     function getSurroundCubes(objX, objZ) {
@@ -620,9 +688,7 @@
           }
           break;
       }
-    }
-
- 
+    } 
 
     function showColor(inkColor) {
       document.querySelector('#color h2 span.color').innerHTML = inkColor.toString(16);
