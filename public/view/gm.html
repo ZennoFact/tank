@@ -80,30 +80,13 @@
     const scene = new THREE.Scene();
     scene.background = new THREE.Color( 0x000000 );
     const floorY = 0.5;
-    let canBomb = true;
-    let bombTimer = 0;
 
     let balls = []; // 発射されたボールを保持
     let padList = []; // 接続されているゲームパッドを保持
     let objects = []; // 他のユーザーを保持
 
-    let pressed = {
-      lButton: false,
-      rButton: false,
-      rTriger: false,
-      lTriger: false,
-      bButton: false,
-      // xButton: false, // マップの編集をしないから使わなくていい
-      rStick: false,
-      backButton: false,
-      startButton: false,
-    }
-    let tilted = {
-      lStickV: 0,
-      lStickH: 0,
-      rStickV: 0,
-      rStickH: 0,
-    }
+    
+    const colorList = [color.player1, color.player2, color.player3, color.player4]
 
     let cubes = [];
     for (let i = 0; i <= 100; i++) {
@@ -168,13 +151,7 @@
     mapCamera.position.set(0, 30, 0);
     mapCamera.lookAt(new THREE.Vector3(0, 0, 0));
     scene.add(mapCamera); // シーンに登録しよう
-    
-
-    // player
-    colorIndex = 0;
-    colorList = [color.player1, color.player2, color.player3, color.player4]
-    const player = new Player({x: 3, y: floorY, z: 3}, colorList[0]);
-
+  
 
     // wall TODO: 本陣の設置はここで。
 
@@ -282,7 +259,6 @@
     let end = new Date();
     const timer = document.querySelector("#timeDisplay");
     timer.addEventListener('click', event => {
-      console.log('test')
       if (ready) {
         timer.querySelector("p").innerHTML = "Go!"
         end = new Date();
@@ -290,6 +266,7 @@
         end.setTime(end.getTime() + playTime);
         timer.querySelector("h2").innerHTML = getTimeString(getRemainingTime(end));
         ready = false;
+        socket.emit('start', 'Go!');
       }
     }, false);
 
@@ -355,66 +332,10 @@
 
     // TODO: playerのみの操作，どこまできっちり分けるか
     function processing() {
-      requestAnimationFrame( processing );
-      
-      let clone = player.mesh.clone();
-      let oldInk = player.color.ink;
-      
-      // ゲームパッドが使えるときの処理
-      const padList = navigator.getGamepads();
-      if(padList[0]) {
-        pad = padList[0];
-        pressed.lButton = (pad.buttons[config.button.lb].pressed) ? true : false;
-        pressed.rButton = (pad.buttons[config.button.rb].pressed) ? true : false;
-        pressed.backButton = (pad.buttons[config.button.back].pressed) ? true : false;
-        pressed.startButton = (pad.buttons[config.button.start].pressed) ? true : false;
-        pressed.rTriger = (pad.buttons[config.button.rt].pressed) ? true : false;
-        pressed.lTriger = (pad.buttons[config.button.lt].pressed) ? true : false;
-        pressed.rStick = (pad.buttons[config.button.rStick].pressed) ? true : false;
-        tilted.lStickV = (pad.axes[config.stick.leftY]) ? pad.axes[config.stick.leftY] : 0;
-        tilted.rStickH = (pad.axes[config.stick.rightX]) ? pad.axes[config.stick.rightX] : 0;
-      }
-      
-
-      player.setBounds();
-      // 壁との接触は現在は自プレイヤーのもののみ処理する
-      let surroundCubes = getSurroundCubes(player.mesh.position.x, player.mesh.position.z);
-      
-      surroundCubes.forEach(cube => { // 一つ一つのキューブを取り出して，
-        // Step.6 衝突の検知 cube.collision(player);
-        const result = cube.collision(player);
-
-        if (result.isHit) {
-          const padList = navigator.getGamepads();
-          if (padList[0]) {
-            padList[0].vibrationActuator.playEffect('dual-rumble', {
-              startDelay: 0,
-              // duration: 30, // この振動の間隔，どこまでパフォーマンスに影響する？
-              weakMagnitude: 1.0,
-              strongMagnitude: 1.0,
-            });
-          }
-          
-          // ぶつかったらしばらく玉が撃てないように
-          interval.triger = 20;
-          interval.rb = 20;
-          
-          if (result.color !== color.wall) {
-            splash(cube.position, result.color.splash);
-          }
-        }
-      });
+      requestAnimationFrame( processing );  
 
       balls.forEach((ball, i) =>{
-        if(currentState === viewMode.firstPerson) {
-          ball.mesh.material.transparent = true;
-          ball.mesh.material.opacity = 0.5;
-        } else {
-          ball.mesh.material.transparent = false;
-          ball.mesh.material.opacity = 1.0;
-        }
         ball.move();
-        surroundCubes = [];
         surroundCubes = getSurroundCubes(ball.mesh.position.x, ball.mesh.position.z);
         surroundCubes.forEach(cube => {
           if(ball.collision(cube)) {
@@ -431,12 +352,6 @@
             splash(obj.mesh.position, ball.color.splash);
           }
         });
-        if(player.collision(ball)) {
-          colorIndex = ball.color.index;
-          showColor(ball.color.ink)
-          splash(player.mesh.position, ball.color.splash);
-        }
-
 
         if(ball.collision(floor)) {
           splash(ball.mesh.position, ball.color.splash);
@@ -454,33 +369,14 @@
       if (!ready) {
         const remainigTime = getRemainingTime(end);
         document.querySelector("#timeDisplay h2").innerHTML = getTimeString(remainigTime);
+        if (remainigTime <= 0) {
+          socket.emit("finish", "Finish!");
+          ready = true;
+        }
       }
     }
 
     socket.on("move", data => {
-      switch(currentState) {
-        case viewMode.birdsEye:
-          camera.position.x = player.mesh.position.x;
-          camera.position.z = player.mesh.position.z;
-          break;
-          case viewMode.thirdPerson:
-          camera.rotation.y = player.mesh.rotation.y
-          
-          const rad = -player.mesh.rotation.y + (90 * Math.PI / 180);
-          camera.position.y = player.mesh.position.y + 2;
-          camera.position.x = player.mesh.position.x + cameraDistance * Math.cos(rad);
-          camera.position.z = player.mesh.position.z + cameraDistance * Math.sin(rad);
-          
-          break;
-        case viewMode.firstPerson:
-          camera.position.x = player.mesh.position.x;
-          camera.position.z = player.mesh.position.z;
-          if (isDiveMode) camera.position.y = 0.1;
-          else camera.position.y = player.mesh.position.y;
-          
-          camera.rotation.y = player.mesh.rotation.y;
-          break;
-      }
 
       // TODO: 記述位置，内容ともに要検討
       objects.forEach((obj, i) => {
@@ -499,13 +395,12 @@
           }
         }
       })
-                
-      mapCamera.position.x = player.mesh.position.x;
-      mapCamera.position.z = player.mesh.position.z;
+
       renderer.render( scene, camera );
       mapRenderer.render( scene, mapCamera);
 
-      areaCheck();
+      // TODO: この処理，10秒～30秒に一回じゃダメか
+      // areaCheck();
     });
 
     function getSurroundCubes(objX, objZ) {
@@ -521,7 +416,7 @@
     }
   
     function shoot() {
-      const ball = new Ball(player); // オリジナルのCubeを作る呪文
+      const ball = new Ball(player);
       scene.add( ball.mesh );
       balls.push(ball);
 
@@ -643,22 +538,6 @@
           break;
       }
     }, false); 
-
-
-
-    /* ゲームパッド関連 */
-    // 接続処理
-    window.addEventListener("gamepadconnected", function(e) {
-      console.log("Gamepad connected at index %d: %s. %d buttons, %d axes.",
-        e.gamepad.index, e.gamepad.id,
-        e.gamepad.buttons.length, e.gamepad.axes.length);
-    });
-
-    // 切断処理
-    window.addEventListener("gamepaddisconnected", function(e) {
-      console.log("Gamepad disconnected from index %d: %s",
-        e.gamepad.index, e.gamepad.id);
-    });
 
   </script>
 </body>

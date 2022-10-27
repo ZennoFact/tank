@@ -175,8 +175,8 @@
     
 
     // player
-    colorIndex = 0;
-    colorList = [color.player1, color.player2, color.player3, color.player4]
+    const colorIndex = 0;
+    const colorList = [color.player1, color.player2, color.player3, color.player4]
     const player = new Player({x: 3, y: floorY, z: 3}, colorList[0]);
     scene.add(player.mesh);
 
@@ -287,6 +287,8 @@
 
     // TODO: 適切な記載場所を検討
     /* socket.io */
+    
+    let isReady = true;
     var socket = io();
     socket.on("login", data => {
       socket.id = data.id;
@@ -326,9 +328,18 @@
           splash(p.mesh.position, p.color.splash);
         }
       });
+      socket.on("start", (data) => {
+        console.log(data)
+        isReady = false;
+        // ループの開始
+        processing();
+      });
+      
+      socket.on("finish", (data) => {
+        console.log(data)
+        isReady = true;
+      });
 
-      // ループの開始
-      processing();
     });
 
     // 各種ボタン連打・弾丸発射間隔の計測用変数
@@ -341,11 +352,11 @@
       rb: 0
     }
 
-
     // TODO: playerのみの操作，どこまできっちり分けるか
     function processing() {
+      if(isReady) return;
       requestAnimationFrame( processing );
-      
+
       let clone = player.mesh.clone();
       let oldInk = player.color.ink;
       

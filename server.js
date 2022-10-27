@@ -81,6 +81,12 @@ io.on("connection", (socket) => {
     delete objects[socket.id];
     console.log("user disconnected");
   });
+  socket.on("start", (data) => {
+    socket.broadcast.emit("start", data);
+  });
+  socket.on("finish", (data) => {
+    socket.broadcast.emit("finish", data);
+  });
 });
 
 // TODO: 床を塗った情報はどうする？あと玉，壁の共有はCSVかなんかで実現？
