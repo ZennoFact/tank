@@ -147,6 +147,10 @@
   height: 100px;
 }
 
+#timeDisplay {
+  pointer-events: painted;
+}
+
 .timer {
   top: 20px;
   right: 20px;
@@ -171,3 +175,4 @@
   position: relative;
   margin: 20px;
 }
+

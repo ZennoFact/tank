@@ -17,7 +17,7 @@
       <h2>Sub</h2>
       <p>R-Button</p>
     </div>
-    <div id="dive" class="ui　ui-label">
+    <div id="dive" class="ui ui-label">
       <h2>Dive</h2>
       <p>L-Triger</p>
     </div>
@@ -127,7 +127,7 @@
     let currentState = viewMode.birdsEye; 
     let weapon = weaponMode.main;
 
-    const cameraBaseHeight = 20;
+    const cameraBaseHeight = 100;
     const cameraEditHeight = 70;
 
     // DEBUG
@@ -162,10 +162,6 @@
     });
     mapRenderer.setSize( window.innerWidth, window.innerHeight );
     mapRenderer.domElement.id = 'map';
-    // Step.5 画面に部品を登録します　document.body.appendChild( mapRenderer.domElement );
-    document.body.appendChild( mapRenderer.domElement ); 
-    mapRenderer.domElement.style.width = "250px"; // マップを表示するパーツなのでちっさくしましょう
-    mapRenderer.domElement.style.height = "250px";
 
     // マップを表示するためのカメラも作って
     const mapCamera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 10000 );
@@ -178,7 +174,7 @@
     colorIndex = 0;
     colorList = [color.player1, color.player2, color.player3, color.player4]
     const player = new Player({x: 3, y: floorY, z: 3}, colorList[0]);
-    scene.add(player.mesh);
+
 
     // wall TODO: 本陣の設置はここで。
 
@@ -281,9 +277,31 @@
       // return wallPosition;
     }
 
-    
-    loadUI();
-    showColor(player.color.ink);
+    loadUI("gm");
+    let ready = true;
+    let end = new Date();
+    const timer = document.querySelector("#timeDisplay");
+    timer.addEventListener('click', event => {
+      console.log('test')
+      if (ready) {
+        timer.querySelector("p").innerHTML = "Go!"
+        end = new Date();
+        const playTime = 3 * 60 * 1000;
+        end.setTime(end.getTime() + playTime);
+        timer.querySelector("h2").innerHTML = getTimeString(getRemainingTime(end));
+        ready = false;
+      }
+    }, false);
+
+    function getRemainingTime(time) {
+      return time - new Date();
+    }
+
+    function getTimeString(ms) {
+      const min = Math.floor(ms / 60000);
+      const sec = Math.floor((ms % 60000) / 1000);
+      return min + ":" + String(sec).padStart(2, '0'); 
+    }
 
     // TODO: 適切な記載場所を検討
     /* socket.io */
@@ -300,14 +318,7 @@
         objects.push(player);
       }
 
-      player.changeColor(colorList[data.color]);
-      showColor(player.color.ink);
-      socket.emit('onStage', {
-        color: player.color.index,
-        position: player.mesh.position,
-        rotation: player.mesh.rotation.y
-      });
-    
+      
       socket.on("appear", (data) => {
         let p = data.object;
         const player = new Player({x: p.position.x, y: p.position.y, z: p.position.z}, colorList[p.color]);
@@ -362,119 +373,6 @@
         pressed.rStick = (pad.buttons[config.button.rStick].pressed) ? true : false;
         tilted.lStickV = (pad.axes[config.stick.leftY]) ? pad.axes[config.stick.leftY] : 0;
         tilted.rStickH = (pad.axes[config.stick.rightX]) ? pad.axes[config.stick.rightX] : 0;
-      }
-      const rt = document.querySelector('#rTriger')
-      // ボールを投げる
-      interval.triger--;
-      if(interval.triger === 0) rt.classList.remove('cooldown');
-      interval.rb--;
-      if(pressed.rTriger) {
-        if(interval.triger < 0) {
-          if(weapon !== weaponMode.main) weapon = weaponMode.main;
-          if(weapon === weaponMode.main && !isDiveMode) {
-            shoot();
-            interval.triger = 30; // 連射速度を制御
-            rt.classList.add('cooldown');
-          }
-        }
-        if(pressed.rButton) document.querySelector('#rButton').classList.remove('active');
-      } else {
-        if(pressed.rButton) {
-          document.querySelector('#rButton').classList.add('active');
-          if (interval.rb < 0) {
-            if(weapon !== weaponMode.sub1) weapon = weaponMode.sub1;
-            if(weapon === weaponMode.sub1) {
-              subWeapon1();
-              interval.rb = 30;
-            }
-          }
-        } else {
-          document.querySelector('#rButton').classList.remove('active');
-        }
-      }
-
-      // 潜行
-      if(pressed.lTriger) {
-        if(interval.lTriger < 0 && isPlayerArea(player)) {
-          document.querySelector('#dive').classList.add('active');
-          player.mesh.position.y = -0.35;
-          isDiveMode = true;
-          console.log("dive start")
-        } else if(isDiveMode && !isPlayerArea(player)) {
-          isDiveMode = false;
-          document.querySelector('#dive').classList.remove('active');
-          document.querySelector('#dive').classList.add('penalty');
-          interval.lTriger = 30; // 連射速度を制御
-          player.mesh.position.y = floorY;
-          
-          console.log("dive over")
-        }
-      } else if(!isDiveMode) {
-        interval.lTriger--;
-      } else if (isDiveMode) { 
-        isDiveMode = false;
-        document.querySelector('#dive').classList.remove('active');
-        interval.lTriger = 30; // 連射速度を制御
-        if(interval.lTriger === 30)document.querySelector('#dive').classList.add('cooldown');
-        player.mesh.position.y = floorY;
-        console.log('dive stop')
-      }
-
-      if(interval.lTriger === 0) {
-        const ui = document.querySelector('#dive');
-        ui.classList.remove('cooldown');
-        ui.classList.remove('penalty');
-      }
-
-      // 移動　TODO: 撃っている間は動きを鈍らせてもいいかもね
-      if(tilted.lStickV < -0.3 ) {
-        let speed = 0.1 * tilted.lStickV;
-        if (isDiveMode) speed *= 2;
-        player.move(speed);
-        document.querySelector('#lStick').classList.add("active");
-      } else if(tilted.lStickV > 0.3) {
-        let speed = 0.1 * tilted.lStickV;
-        if (isDiveMode) speed *= 2;
-        player.move(speed);
-        document.querySelector('#lStick').classList.add("active");
-      } else {
-        document.querySelector('#lStick').classList.remove("active");
-      }
-      
-      if(tilted.rStickH < -0.3 || 0.3 < tilted.rStickH) {
-        document.querySelector('#rStick').classList.add("active");
-        player.roll(tilted.rStickH);
-      } else {
-        document.querySelector('#rStick').classList.remove("active");
-      }
-
-      // 視点変更
-      interval.rs--;
-      if(pressed.rStick) {
-        if (interval.rs < 0) {
-          interval.rs = 20;
-          currentState = (currentState + 1) % 3;
-          setCamera(currentState);
-        }
-      }
-
-      // 色変更 
-      interval.lb--;
-      if(pressed.lButton) {
-        if (interval.lb < 0) {
-          interval.lb = 30;
-
-          colorIndex = (colorIndex + 1) % 4;
-          player.changeColor(colorList[colorIndex]);
-          showColor(player.color.ink)
-        }
-      }      
-      
-      // 床の範囲を越えたら重力の影響を受けます。
-      if(player.mesh.position.x < -50 || 50 < player.mesh.position.x || player.mesh.position.z < -50 || 50 < player.mesh.position.z || player.mesh.position.y < -1) {
-        player.mesh.position.y -= 0.98;
-
-        if(player.mesh.position.y < -500) player.mesh.position.set(0, floorY, 0);
       }
       
 
@@ -553,19 +451,13 @@
       });
       balls = balls.filter(b => b.isNotHit);
 
-      // プレイヤー情報に変更があれば，ここで位置情報をサーバへ送信：（位置・回転・色）
-      if(!player.equals(clone, oldInk)) {
-        let newData = {color: player.color.index, position: player.mesh.position, rotation: player.mesh.rotation.y};
-        if(socket.id) socket.emit("move", newData);
+      if (!ready) {
+        const remainigTime = getRemainingTime(end);
+        document.querySelector("#timeDisplay h2").innerHTML = getTimeString(remainigTime);
       }
     }
 
     socket.on("move", data => {
-      const value = data[socket.id];
-      player.mesh.position.set(value.position.x, value.position.y, value.position.z);
-      player.mesh.rotation.y = value.rotation;
-      
-
       switch(currentState) {
         case viewMode.birdsEye:
           camera.position.x = player.mesh.position.x;
@@ -612,6 +504,8 @@
       mapCamera.position.z = player.mesh.position.z;
       renderer.render( scene, camera );
       mapRenderer.render( scene, mapCamera);
+
+      areaCheck();
     });
 
     function getSurroundCubes(objX, objZ) {

@@ -10,6 +10,18 @@ const csv = require("csv");
 
 app.use(express.static("public"));
 
+app.get("/gm", (req, res) => {
+  fs.createReadStream(__dirname + "/public/assets/map/map1.csv").pipe(
+    csv.parse((err, map) => {
+      fs.readFile(__dirname + "/public/view/gm.html", "utf-8", (err, html) => {
+        if (err) throw err; // 例外発生時の処理
+        const replaceMap = html.replace("'%%MAP%%'", JSON.stringify(map));
+        res.end(replaceMap);
+      });
+    })
+  );
+});
+
 app.get("/", (req, res) => {
   fs.createReadStream(__dirname + "/public/assets/map/map1.csv").pipe(
     csv.parse((err, map) => {
