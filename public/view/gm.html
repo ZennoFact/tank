@@ -381,7 +381,7 @@
       // TODO: 記述位置，内容ともに要検討
       objects.forEach((obj, i) => {
         if (obj.id !== socket.id) { // プレイヤー以外の場合実行
-          const value = data[obj.id];
+          const value = data.obj[obj.id];
           if (value) {
             obj.mesh.position.set(value.position.x, value.position.y, value.position.z);
             obj.mesh.rotation.y = value.rotation;
@@ -407,8 +407,9 @@
       const x = Math.floor(objX + 50);
       const z = Math.floor(objZ + 50);
       const surrounds = [];
-      for(let i = z - 4; i < z + 4; i++) {
-        for(let j = x - 4; j < x + 4; j++) {
+      const size = 3; 
+      for(let i = z - size; i < z + size; i++) {
+        for(let j = x - size; j < x + size; j++) {
           if (0 <= i && i < cubes.length && 0 <= j && j < cubes[0].length && cubes[i][j]) surrounds.push(cubes[i][j]);
         }
       }

@@ -17,7 +17,7 @@
       <h2>Sub</h2>
       <p>R-Button</p>
     </div>
-    <div id="dive" class="ui　ui-label">
+    <div id="dive" class="ui ui-label">
       <h2>Dive</h2>
       <p>L-Triger</p>
     </div>
@@ -35,6 +35,9 @@
     </div>
     <div id="view" class="ui ui-label">
       <h2 class="mode">Bird's Eye</h2><p class="parts">R-Stick Press</p>
+    </div>
+    <div id="timer" class="ui ui-label">
+      <h2 class="time">0:00</h2><p class="parts">status</p>
     </div>
   </template>
   <template id="gmParts">
@@ -124,7 +127,7 @@
     
     let cameraDistance = 8;
 
-    let currentState = viewMode.birdsEye; 
+    let currentState = viewMode.thirdPerson; 
     let weapon = weaponMode.main;
 
     const cameraBaseHeight = 20;
@@ -146,7 +149,6 @@
     const renderer = new THREE.WebGLRenderer({
         alpha: true
     });
-    renderer.shadowMap.enabled = true;
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.body.appendChild( renderer.domElement ); // 画面に部品を登録します
     
@@ -284,6 +286,7 @@
     
     loadUI();
     showColor(player.color.ink);
+    setCamera(currentState);
 
     // TODO: 適切な記載場所を検討
     /* socket.io */
@@ -548,10 +551,7 @@
           colorIndex = ball.color.index;
           showColor(ball.color.ink)
           splash(player.mesh.position, ball.color.splash);
-        }
-
-
-        if(ball.collision(floor)) {
+        } else if(ball.collision(floor)) {
           splash(ball.mesh.position, ball.color.splash);
         }
         
@@ -572,7 +572,7 @@
     }
 
     socket.on("move", data => {
-      const value = data[socket.id];
+      const value = data.obj[socket.id];
       player.mesh.position.set(value.position.x, value.position.y, value.position.z);
       player.mesh.rotation.y = value.rotation;
       
@@ -604,7 +604,7 @@
       // TODO: 記述位置，内容ともに要検討
       objects.forEach((obj, i) => {
         if (obj.id !== socket.id) { // プレイヤー以外の場合実行
-          const value = data[obj.id];
+          const value = data.obj[obj.id];
           if (value) {
             obj.mesh.position.set(value.position.x, value.position.y, value.position.z);
             obj.mesh.rotation.y = value.rotation;
@@ -629,8 +629,9 @@
       const x = Math.floor(objX + 50);
       const z = Math.floor(objZ + 50);
       const surrounds = [];
-      for(let i = z - 4; i < z + 4; i++) {
-        for(let j = x - 4; j < x + 4; j++) {
+      const size = 3; 
+      for(let i = z - size; i < z + size; i++) {
+        for(let j = x - size; j < x + size; j++) {
           if (0 <= i && i < cubes.length && 0 <= j && j < cubes[0].length && cubes[i][j]) surrounds.push(cubes[i][j]);
         }
       }

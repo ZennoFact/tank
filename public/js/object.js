@@ -32,8 +32,6 @@ class Player extends SplaObject {
     );
 
     this.mesh.position.set(position.x, position.y, position.z);
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
 
     // 接触判定用BoundingBox
     this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -101,8 +99,6 @@ class Block extends SplaObject {
       new THREE.MeshBasicMaterial({ color: this.color.ink })
     );
     this.mesh.position.set(position.x, position.y, position.z);
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
 
     // 接触判定用BoundingBox
     this.boundingBox = new THREE.Box3(new THREE.Vector3(), new THREE.Vector3());
@@ -157,8 +153,6 @@ class Ball extends SplaObject {
       player.mesh.rotation.y,
       player.mesh.rotation.z
     );
-    this.mesh.castShadow = true;
-    this.mesh.receiveShadow = true;
     // this.mesh.matrixAutoUpdate = false;
 
     // 接触判定用BoundingBox
@@ -231,7 +225,6 @@ class Floor extends SplaObject {
     });
 
     this.mesh = new THREE.Mesh(floorGeometry, floorMaterial);
-    this.mesh.receiveShadow = true;
     this.mesh.rotation.x = Math.PI / -2; // 平面を作ると縦に出来上がるので，回転させて床にする（なお，三角関数を利用）
 
     // 接触判定用BoundingBox

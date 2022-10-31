@@ -89,10 +89,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// TODO: 床を塗った情報はどうする？あと玉，壁の共有はCSVかなんかで実現？
+// TODO: ゲーム時間の処理はサーバで実施。　startイベント時にタイマーを設定して共有
+let time = 0;
 function timer() {
   // TODO: ここで，一斉にデータ送信
-  io.emit("move", objects);
+  io.emit("move", { obj: objects, time: time });
 }
 
 setInterval(timer, 50);

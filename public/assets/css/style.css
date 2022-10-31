@@ -87,10 +87,19 @@
   width: 230px;
   color: #6464ff;
 }
+
+#timer {
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  position: absolute;
+  
+}
+
 #lStick{
-  /* transform:rotateY(-45deg);  */
   left: 20px;
-  bottom: 400px;
+  top: 50%;
+  transform: translateY(-50%);
   
   width: 120px;
   height: 120px;
@@ -107,8 +116,8 @@
 
 #rStick{
   right: 20px;
-  bottom: 400px;
-  
+  top: 50%;
+  transform: translateY(-50%);
   width: 120px;
   height: 120px;
   border-radius: 50%;

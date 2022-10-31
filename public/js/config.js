@@ -78,3 +78,33 @@ const color = {
     index: 3,
   },
 };
+
+// TODO: 将来的にパッドの接続の有無で操作に必要なボタン名を変えたい
+manual = {
+  gamepad: {
+    bom: "B-Button",
+    color: "L-Button",
+    dive: "L-Triger",
+    edit: "X-Button",
+    load: "Back-Button",
+    main: "R-Triger",
+    move: "↑L-Stick↓",
+    roll: "←R-Stick→",
+    save: "Start-Button",
+    sub: "R-Button",
+    view: "R-Stick Press",
+  },
+  keyboard: {
+    bom: "B",
+    color: "",
+    dive: "",
+    edit: "",
+    load: "",
+    main: "SPACE",
+    move: "↑W | S↓",
+    roll: "←A | D→",
+    save: "",
+    sub: "",
+    view: "",
+  },
+};
